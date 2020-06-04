@@ -1,20 +1,25 @@
 const gridWidth = 9;
 const gridHeight = 9;
 
-const blankTile = '';
+const blankTile = 0;
 
 const countToNineArray = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-const legalMoveRetries = 5;
+const maxRetries = 25;
+const maxRetriesPerRetry = 15;
 
-// initialize the maze as an empty grid
-let board = [];
-let defaultRow = Array(gridWidth).fill(blankTile)
+// initialize the board as an empty grid
+function initBoard() {
+  let board = [];
+  let defaultRow = Array(gridWidth).fill(blankTile)
 
-for (let i = 0; i < gridHeight; i++) {
-  let newRow = Object.assign([], defaultRow);
-  board.push(newRow);
+  for (let i = 0; i < gridHeight; i++) {
+    let newRow = Object.assign([], defaultRow);
+    board.push(newRow);
+  }
+  return board;
 }
+
 
 let availableBoardTiles = [];
 for (let i = 0; i < gridHeight; i++) {
@@ -41,7 +46,11 @@ const topLeftGridBottomRow = [
   [2, 2]
 ]
 // top, then middle, then bottom
-const topLeftGrid = [topLeftGridTopRow, topLeftGridMiddleRow, topLeftGridBottomRow].flat()
+const topLeftGrid = {
+  rows: [0, 1, 2],
+  columns: [0, 1, 2],
+  coordinates: [topLeftGridTopRow, topLeftGridMiddleRow, topLeftGridBottomRow].flat()
+}
 
 const middleLeftGridTopRow = [
   [3, 0],
@@ -59,7 +68,11 @@ const middleLeftGridBottomRow = [
   [5, 2]
 ]
 // top, then middle, then bottom
-const middleLeftGrid = [middleLeftGridTopRow, middleLeftGridMiddleRow, middleLeftGridBottomRow].flat()
+const middleLeftGrid = {
+  rows: [3, 4, 5],
+  columns: [0, 1, 2],
+  coordinates: [middleLeftGridTopRow, middleLeftGridMiddleRow, middleLeftGridBottomRow].flat()
+}
 
 const bottomLeftGridTopRow = [
   [6, 0],
@@ -77,7 +90,11 @@ const bottomLeftGridBottomRow = [
   [8, 2]
 ]
 // top, then middle, then bottom
-const bottomLeftGrid = [bottomLeftGridTopRow, bottomLeftGridMiddleRow, bottomLeftGridBottomRow].flat()
+const bottomLeftGrid = {
+  rows: [6, 7, 8],
+  columns: [0, 1, 2],
+  coordinates: [bottomLeftGridTopRow, bottomLeftGridMiddleRow, bottomLeftGridBottomRow].flat()
+}
 
 // middle grids
 const topMiddleGridTopRow = [
@@ -96,7 +113,11 @@ const topMiddleGridBottomRow = [
   [2, 5]
 ]
 // top, then middle, then bottom
-const topMiddleGrid = [topMiddleGridTopRow, topMiddleGridMiddleRow, topMiddleGridBottomRow].flat()
+const topMiddleGrid = {
+  rows: [0, 1, 2],
+  columns: [3, 4, 5],
+  coordinates: [topMiddleGridTopRow, topMiddleGridMiddleRow, topMiddleGridBottomRow].flat()
+}
 
 const middleMiddleGridTopRow = [
   [3, 3],
@@ -114,7 +135,11 @@ const middleMiddleGridBottomRow = [
   [5, 5]
 ]
 // top, then middle, then bottom
-const middleMiddleGrid = [middleMiddleGridTopRow, middleMiddleGridMiddleRow, middleMiddleGridBottomRow].flat()
+const middleMiddleGrid = {
+  rows: [3, 4, 5],
+  columns: [3, 4, 5],
+  coordinates: [middleMiddleGridTopRow, middleMiddleGridMiddleRow, middleMiddleGridBottomRow].flat()
+}
 
 const bottomMiddleGridTopRow = [
   [6, 3],
@@ -132,7 +157,11 @@ const bottomMiddleGridBottomRow = [
   [8, 5]
 ]
 // top, then middle, then bottom
-const bottomMiddleGrid = [bottomMiddleGridTopRow, bottomMiddleGridMiddleRow, bottomMiddleGridBottomRow].flat()
+const bottomMiddleGrid = {
+  rows: [6, 7, 8],
+  columns: [3, 4, 5],
+  coordinates: [bottomMiddleGridTopRow, bottomMiddleGridMiddleRow, bottomMiddleGridBottomRow].flat()
+}
 
 // right side grids
 const topRightGridTopRow = [
@@ -151,7 +180,11 @@ const topRightGridBottomRow = [
   [2, 8]
 ]
 // top, then middle, then bottom
-const topRightGrid = [topRightGridTopRow, topRightGridMiddleRow, topRightGridBottomRow].flat()
+const topRightGrid = {
+  rows: [0, 1, 2],
+  columns: [6, 7, 8],
+  coordinates: [topRightGridTopRow, topRightGridMiddleRow, topRightGridBottomRow].flat()
+}
 
 const middleRightGridTopRow = [
   [3, 6],
@@ -169,7 +202,11 @@ const middleRightGridBottomRow = [
   [5, 8]
 ]
 // top, then middle, then bottom
-const middleRightGrid = [middleRightGridTopRow, middleRightGridMiddleRow, middleRightGridBottomRow].flat()
+const middleRightGrid = {
+  rows: [3, 4, 5],
+  columns: [6, 7, 8],
+  coordinates: [middleRightGridTopRow, middleRightGridMiddleRow, middleRightGridBottomRow].flat()
+}
 
 const bottomRightGridTopRow = [
   [6, 6],
@@ -187,7 +224,11 @@ const bottomRightGridBottomRow = [
   [8, 8]
 ]
 // top, then middle, then bottom
-const bottomRightGrid = [bottomRightGridTopRow, bottomRightGridMiddleRow, bottomRightGridBottomRow].flat()
+const bottomRightGrid = {
+  rows: [6, 7, 8],
+  columns: [6, 7, 8],
+  coordinates: [bottomRightGridTopRow, bottomRightGridMiddleRow, bottomRightGridBottomRow].flat()
+}
 
 // rows
 const firstRow = [
@@ -393,13 +434,15 @@ const ninthColumn = [
 
 const allGrids = [
   topLeftGrid, middleLeftGrid, bottomLeftGrid, topMiddleGrid, middleMiddleGrid, bottomMiddleGrid,
-  topRightGrid, middleRightGrid, bottomRightGrid,
-  firstRow, secondRow, thirdRow, fourthRow, fifthRow, sixthRow, seventhRow, eighthRow, ninthRow,
-  firstColumn, secondColumn, thirdColumn, fourthColumn, fifthColumn, sixthColumn, seventhColumn, eighthColumn, ninthColumn
+  topRightGrid, middleRightGrid, bottomRightGrid
 ]
 
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
+}
+
+function setBoardTile(coordinates, tile) {
+  board[coordinates[0]][coordinates[1]] = tile;
 }
 
 function isGridComplete(grid) {
@@ -421,7 +464,7 @@ function isGridComplete(grid) {
 
 function isBoardComplete() {
   for (grid of allGrids) {
-    if (!isGridComplete(grid)) {
+    if (!isGridComplete(grid.coordinates)) {
       return false;
     }
   }
@@ -592,40 +635,40 @@ function getAdjacentGrids(coordinates) {
 
   const adjacentGrids = {
     'topLeftGrid': {
-      horizontal: [topMiddleGrid, topRightGrid],
-      vertical: [middleLeftGrid, bottomLeftGrid]
+      horizontal: [topMiddleGrid.coordinates, topRightGrid.coordinates],
+      vertical: [middleLeftGrid.coordinates, bottomLeftGrid.coordinates]
     },
     'middleLeftGrid': {
-      horizontal: [middleMiddleGrid, middleRightGrid],
-      vertical: [topLeftGrid, bottomLeftGrid]
+      horizontal: [middleMiddleGrid.coordinates, middleRightGrid.coordinates],
+      vertical: [topLeftGrid.coordinates, bottomLeftGrid.coordinates]
     },
     'bottomLeftGrid': {
-      horizontal: [bottomMiddleGrid, bottomRightGrid],
-      vertical: [topLeftGrid, middleLeftGrid]
+      horizontal: [bottomMiddleGrid.coordinates, bottomRightGrid.coordinates],
+      vertical: [topLeftGrid.coordinates, middleLeftGrid.coordinates]
     },
     'topMiddleGrid': {
-      horizontal: [topLeftGrid, topRightGrid],
-      vertical: [middleMiddleGrid, bottomMiddleGrid]
+      horizontal: [topLeftGrid.coordinates, topRightGrid.coordinates],
+      vertical: [middleMiddleGrid.coordinates, bottomMiddleGrid.coordinates]
     },
     'middleMiddleGrid': {
-      horizontal: [middleLeftGrid, middleRightGrid],
-      vertical: [topMiddleGrid, bottomMiddleGrid]
+      horizontal: [middleLeftGrid.coordinates, middleRightGrid.coordinates],
+      vertical: [topMiddleGrid.coordinates, bottomMiddleGrid.coordinates]
     },
     'bottomMiddleGrid': {
-      horizontal: [bottomLeftGrid, bottomRightGrid],
-      vertical: [topMiddleGrid, middleMiddleGrid]
+      horizontal: [bottomLeftGrid.coordinates, bottomRightGrid.coordinates],
+      vertical: [topMiddleGrid.coordinates, middleMiddleGrid.coordinates]
     },
     'topRightGrid': {
-      horizontal: [topLeftGrid, topMiddleGrid],
-      vertical: [middleRightGrid, bottomRightGrid]
+      horizontal: [topLeftGrid.coordinates, topMiddleGrid.coordinates],
+      vertical: [middleRightGrid.coordinates, bottomRightGrid.coordinates]
     },
     'middleRightGrid': {
-      horizontal: [middleLeftGrid, middleMiddleGrid],
-      vertical: [topRightGrid, bottomRightGrid]
+      horizontal: [middleLeftGrid.coordinates, middleMiddleGrid.coordinates],
+      vertical: [topRightGrid.coordinates, bottomRightGrid.coordinates]
     },
     'bottomRightGrid': {
-      horizontal: [bottomLeftGrid, bottomMiddleGrid],
-      vertical: [topRightGrid, middleRightGrid]
+      horizontal: [bottomLeftGrid.coordinates, bottomMiddleGrid.coordinates],
+      vertical: [topRightGrid.coordinates, middleRightGrid.coordinates]
     }
   }
 
@@ -665,19 +708,161 @@ function setNextNumber() {
     boardCopy[nextOpenTile[0]][nextOpenTile[1]] = move;
 
     let adjacentGrids = getAdjacentGrids(nextOpenTile);
-    
+
     // how to check adjacent grids?
     // enough to iterate through open tiles and ensure that existing set tiles + open tile option can complete grid?
     // this seems incomplete and the reality is much more subtle -- brute force approach would be to try and fill all the tiles in all the grids and then clawback if an error
     // what would a more subtle approach look like?
 
-    
+
   }
-
-
-
-
 }
 
-console.log(board);
-console.log(availableBoardTiles);
+function columnContainsNum(num, column) {
+  let columnValues = getColumnGridValues(column);
+  if (columnValues.includes(num)) {
+    return true;
+  }
+  return false;
+}
+
+function rowContainsNum(num, row) {
+  let rowValues = getRowGridValues(row);
+  if (rowValues.includes(num)) {
+    return true;
+  }
+  return false;
+}
+
+function decrementK(k, int) {
+  k--;
+  if (k < 0) {
+    k = 8;
+    int--;
+  }
+
+  return [k, int];
+}
+
+function undoLastXTiles(undoCount, int, k) {
+  let finalUndoCoordinates;
+
+  let counterArray = Array(undoCount).fill(1);
+  for (count in counterArray) {
+    // decrement because current k was abandoned and nothing to undo
+    [k, int] = decrementK(k, int)
+
+    let grid = allGrids[k];
+    let offendingCoordinate = grid.coordinates.find(e => board[e[0]][e[1]] === int);
+
+    if (offendingCoordinate !== undefined) {
+      setBoardTile(offendingCoordinate, blankTile);
+    }
+
+    finalUndoCoordinates = offendingCoordinate;
+  }
+
+  // decrement k because for loop will increment immediately
+  [k, int] = decrementK(k, int)
+
+  return [finalUndoCoordinates, int, k];
+}
+
+function stuckMoveMatch(stuckMove, int, k) {
+  if (stuckMove === undefined) {
+    return false;
+  }
+  return stuckMove.k === k && stuckMove.int === int;
+}
+
+function retry() {
+  board = initBoard();
+  setBoard();
+}
+
+function setBoard() {
+  let perRetries = 0;
+  let totalRetries = 0;
+  let undoLastCoordinates;
+  let stuckMove;
+
+  for (let i = 0; i < countToNineArray.length; i++) {
+    let int = countToNineArray[i];
+    for (let k = 0; k < allGrids.length; k++) {
+      if (perRetries > maxRetriesPerRetry) {
+        retry()
+        return
+      }
+
+      if (totalRetries > maxRetries) {
+        retry()
+        return
+      }
+
+      let grid = allGrids[k];
+
+      let availableCoordinates = grid.coordinates.filter(e => board[e[0]][e[1]] === blankTile)
+
+      if (undoLastCoordinates !== undefined) {
+        availableCoordinates = availableCoordinates.filter(e => !coordinatesEqual(e, undoLastCoordinates));
+        undoLastCoordinates = undefined;
+      }
+
+      let rowsWithNumSet = [];
+      let columnWithNumSet = [];
+
+      for (row of grid.rows) {
+        if (rowContainsNum(int, row)) {
+          rowsWithNumSet.push(row);
+        }
+      }
+
+      for (column of grid.columns) {
+        if (columnContainsNum(int, column)) {
+          columnWithNumSet.push(column);
+        }
+      }
+
+      if (rowsWithNumSet.length > 0) {
+        for (row of rowsWithNumSet) {
+          availableCoordinates = availableCoordinates.filter(e => e[0] !== row);
+        }
+      }
+
+      if (columnWithNumSet.length > 0) {
+        for (column of columnWithNumSet) {
+          availableCoordinates = availableCoordinates.filter(e => e[1] !== column);
+        }
+      }
+
+      if (availableCoordinates.length === 0) {
+        if (stuckMoveMatch(stuckMove, int, k)) {
+          perRetries++;
+        } else {
+          totalRetries++;
+          stuckMove = {
+            k: k,
+            int: int,
+          }
+        }
+
+        [undoLastCoordinates, int, k] = undoLastXTiles(perRetries, int, k);
+        console.log("count")
+        i = int - 1;
+        continue
+      }
+
+      let tileToPlay = availableCoordinates[Math.floor(Math.random() * availableCoordinates.length)];
+
+      setBoardTile(tileToPlay, int);
+    }
+
+  }
+  if (!isBoardComplete()) {
+    retry()
+  }
+  console.log(board);
+}
+
+let board = initBoard();
+setBoard();
