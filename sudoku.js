@@ -8,6 +8,8 @@ const countToNineArray = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const maxRetries = 25;
 const maxRetriesPerRetry = 15;
 
+const numOfRevealedGameTiles = 30;
+
 // initialize the board as an empty grid
 function initBoard() {
   let board = [];
@@ -445,6 +447,22 @@ function setBoardTile(coordinates, tile) {
   board[coordinates[0]][coordinates[1]] = tile;
 }
 
+function getBoardTile(coordinates) {
+  return board[coordinates[0]][coordinates[1]];
+}
+
+function setGameBoardTile(coordinates, tile) {
+  gameBoard[coordinates[0]][coordinates[1]] = tile;
+}
+
+function getGameBoardTile(coordinates) {
+  try {
+    return gameBoard[coordinates[0]][coordinates[1]];
+  } catch (err) {
+    debugger
+  }
+}
+
 function isGridComplete(grid) {
   let countToNine = clone(countToNineArray);
 
@@ -864,5 +882,319 @@ function setBoard() {
   console.log(board);
 }
 
+function createGameBoard() {
+  let revealedTiles = [];
+  // let remainingEmptyTiles = clone(allGrids).map((e) => e.coordinates).flat()
+
+  // break numOfRevealedGameTiles into 9 nums for each subGrid, all > 1 and < 6
+
+  let numTilesPerGrid = Math.floor(numOfRevealedGameTiles / 9)
+  let numTilesPerGridArray = Array(9).fill(numTilesPerGrid)
+  let remainder = numOfRevealedGameTiles % 9
+  for (let i = 0; i < remainder; i++) {
+    numTilesPerGridArray[i]++
+  }
+
+  for (let i = 0; i < 20; i++) {
+    // TODO: update to switch rand element if one will be brought below 1 or above 6
+    let randElem1 = numTilesPerGridArray[Math.floor(Math.random() * numTilesPerGridArray.length)];
+    let randElem2 = numTilesPerGridArray[Math.floor(Math.random() * numTilesPerGridArray.length)];
+    if (randElem1 < 2) {
+      randElem1++;
+      randElem2--;
+    } else if (randElem1 > 5) {
+      randElem1--;
+      randElem2++;
+    } else if (randElem2 < 2) {
+      randElem1--;
+      randElem2++;
+    } else if (randElem2 > 5) {
+      randElem1++;
+      randElem2--;
+    } else {
+      randElem1--;
+      randElem2++;
+    }
+  }
+
+  for (let i = 0; i < 9; i++) {
+    let subGrid = clone(allGrids[i].coordinates);
+    for (let k = 0; k < numTilesPerGridArray[i]; k++) {
+      let revealedTileCoordinates = subGrid.splice(Math.floor(Math.random() * subGrid.length), 1)
+      revealedTiles.push(revealedTileCoordinates[0]);
+    }
+  }
+
+  for (coordinates of revealedTiles) {
+    let value = getBoardTile(coordinates);
+    gameBoard[coordinates[0]][coordinates[1]] = value;
+    setGameBoardTile(coordinates, value);
+  }
+
+  return gameBoard;
+}
+
+function getPossibleValues(coordinates, subGrid, claimedCoordinates) {
+  let possibleValues = clone(countToNineArray);
+  let row = coordinates[0];
+  let column = coordinates[1];
+
+  let numsInSubGrid = subGrid.map(e => gameBoard[e[0]][e[1]]).filter(e => e !== blankTile);
+
+  possibleValues = possibleValues.filter(e => !claimedCoordinates.rows[e].includes(row))
+  possibleValues = possibleValues.filter(e => !claimedCoordinates.columns[e].includes(column))
+  possibleValues = possibleValues.filter(e => !numsInSubGrid.includes(e))
+
+  return possibleValues;
+}
+
+function initPossibleCoordinatesBoard() {
+  let board = [];
+
+  for (let i = 0; i < gridHeight; i++) {
+    let row = new Array;
+    for (let k = 0; k < gridWidth; k++) {
+      row.push(new Array);
+    }
+    board.push(row);
+  }
+  return board;
+}
+
+function isGameBoardGridComplete(subGrid) {
+  let countToNine = clone(countToNineArray);
+
+  for (coordinates of subGrid) {
+    let tile = gameBoard[coordinates[0]][coordinates[1]];
+    let index = countToNine.indexOf(tile);
+
+    if (index < 0) {
+      break;
+    }
+
+    countToNine.splice(index, 1);
+  }
+
+  return countToNine.length === 0;
+}
+
+function isGameBoardComplete() {
+  for (grid of allGrids) {
+    if (!isGameBoardGridComplete(grid.coordinates)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function formatSetupBoard() {
+  for (let i = 0; i < gridWidth; i++) {
+    for (let k = 0; k < gridHeight; k++) {
+      let value = setupBoard[i][k]
+      if (value === blankTile) {
+        setupBoard[i][k] = ' ';
+      } else {
+        setupBoard[i][k] = value.toString();
+      }
+    }
+  }
+}
+
+// function getRowsAndColumnsForSubGrid(subGrid) {
+//   let rowNumbers = subgrid.rows;
+//   let columnNumbers = subgrid.columns;
+
+//   let rows = [];
+//   for (row of rowNumbers) {
+//     let oneRow = [];
+//     for (column of columnNumbers) {
+//       oneRow.push([row, column]);
+//     }
+//     rows.push(oneRow);
+//   }
+
+//   let columns = [];
+//   for (columns of columnNumbers) {
+//     let oneColumn = [];
+//     for (row of rowNumbers) {
+//       oneColumn.push([row, column]);
+//     }
+//     columns.push(oneColumn);
+//   }
+//   // debugger
+// }
+
+function removeNumFromPossibleCoordinates(int, possibleCoordinates, subGrid) {
+  for (coordinates of subGrid) {
+    let row = coordinates[0];
+    let column = coordinates[1];
+    if (possibleCoordinates[row][column].includes(int)) {
+      possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
+    }
+  }
+  return possibleCoordinates;
+}
+
+function solvePuzzle() {
+  // claim all the pre-set numbers on the starting board
+  let claimedCoordinates = {
+    rows: {},
+    columns: {}
+  };
+  for (num of countToNineArray) {
+    claimedCoordinates.rows[num] = [];
+    claimedCoordinates.columns[num] = [];
+  }
+
+  for (let i = 0; i < 9; i++) {
+    for (let k = 0; k < 9; k++) {
+      let tileValue = getGameBoardTile([i, k]);
+      if (tileValue !== blankTile) {
+        claimedCoordinates.rows[tileValue].push(i);
+        claimedCoordinates.columns[tileValue].push(k);
+      }
+    }
+  }
+
+  let possibleCoordinates = initPossibleCoordinatesBoard();
+
+  let counter = 0;
+  while (isGameBoardComplete() === false) {
+    // get all of the possible moves for each blank tile in each subGrid
+    // set when there is only one possible value
+    for (grid of allGrids) {
+      for (coordinates of grid.coordinates) {
+        let row = coordinates[0];
+        let column = coordinates[1];
+
+        let tile = getGameBoardTile([coordinates[0], coordinates[1]]);
+        if (tile === blankTile) {
+          let possibleValues = getPossibleValues(coordinates, grid.coordinates, claimedCoordinates);
+          if (possibleValues.length === 1) {
+            let tileValue = possibleValues[0];
+            setGameBoardTile(coordinates, tileValue);
+            claimedCoordinates.rows[tileValue].push(row);
+            claimedCoordinates.columns[tileValue].push(column);
+            possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, possibleCoordinates, grid.coordinates);
+          } else if (possibleValues.length > 1) {
+            // TODO: need to maintain possible moves on each coordinate and clean it up whenever
+            // an effecting play is made
+            possibleCoordinates[row][column] = [];
+            for (num of possibleValues) {
+              possibleCoordinates[row][column].push(num)
+            }
+          }
+        }
+      }
+
+      // TODO: delete this function
+      // let rowsAndColumns = getRowsAndColumnsForSubGrid(grid);
+
+      // TODO: play any number that only has one possible play
+      // claim a row or column where any number with multiple options are all restricted to the same row or column
+
+      // first: count the instances of each number, and play anything that only exists once
+      // (remove that coordinate from the possible coordinates)
+
+      // play any number that is only possible at one coordinate
+      // and claim any any number that is only possible in a single row or column for that row or column
+
+      // debugger;
+      // console.log("debugger ignored")
+      // console.log("counter: ", counter)
+
+      let locationsArray = {};
+
+      for (coordinates of grid.coordinates) {
+        let row = coordinates[0];
+        let column = coordinates[1];
+
+        if (possibleCoordinates[row][column].length > 0) {
+          for (int of possibleCoordinates[row][column]) {
+            if (Array.isArray(locationsArray[int])) {
+              locationsArray[int].push(coordinates);
+            } else {
+              locationsArray[int] = [coordinates];
+            }
+          }
+        }
+      }
+
+      // I think there are bugs in here that could lead this:
+      // [7, 6, 2, 9, 1, 8, 4, 3, 5]
+      // [9, 1, 4, 7, 5, 3, 8, 2, 6]
+      // [3, 8, 5, 2, 6, 4, 7, 9, 1]
+      // [5, 4, 9, 8, 2, 6, 1, 7, 3]
+      // [6, 7, 1, 5, 3, 9, 2, 8, 4]
+      // [8, 2, 3, 4, 7, 1, 6, 5, 9]
+      // [2, 9, 6, 3, 4, 7, 5, 1, 8]
+      // [4, 5, 8, 1, 9, 2, 3, 6, 7]
+      // [1, 3, 7, 6, 8, 5, 9, 4, 2]
+
+      // to be solved like this:
+      // [7, 0, 2, 1, 6, 8, 5, 3, 0]
+      // [9, 1, 4, 7, 3, 0, 0, 0, 6]
+      // [3, 8, 5, 2, 4, 0, 7, 9, 1]
+      // [5, 4, 6, 9, 2, 3, 1, 7, 8]
+      // [0, 7, 1, 5, 0, 6, 0, 0, 4]
+      // [0, 2, 0, 4, 7, 1, 6, 5, 3]
+      // [2, 9, 0, 3, 1, 7, 4, 0, 5]
+      // [6, 0, 8, 0, 0, 2, 3, 0, 7]
+      // [1, 3, 7, 6, 5, 0, 9, 8, 2]
+
+      for (int in locationsArray) {
+        let locations = locationsArray[int];
+        int = parseInt(int);
+        if (locations.length === 1) {
+          let row = locations[0][0];
+          let column = locations[0][1];
+          setGameBoardTile(locations[0], int);
+          claimedCoordinates.rows[int].push(row);
+          claimedCoordinates.columns[int].push(column);
+          possibleCoordinates[row][column] = [];
+        } else if (locations.length > 1) {
+          let rows = [];
+          let columns = [];
+
+          for (coordinates of locations) {
+            rows.push(coordinates[0]);
+            columns.push(coordinates[1]);
+          }
+          let uniqueRows = [...new Set(rows)]
+          let uniqueColumns = [...new Set(columns)]
+
+          if (uniqueRows.length === 1) {
+            // this will cause the claimed int never to be played because it's already been claimed
+            claimedCoordinates.rows[int].push(uniqueRows[0]);
+          }
+          if (uniqueColumns.length === 1) {
+            claimedCoordinates.columns[int].push(uniqueColumns[0]);
+          }
+        }
+      }
+    }
+    counter++;
+    if (counter > 100) {
+      break
+      counter = 0;
+      gameBoard = initBoard();
+      createGameBoard();
+      setupBoard = clone(gameBoard);
+      formatSetupBoard()
+      solvePuzzle();
+      break
+    }
+  }
+}
+
 let board = initBoard();
 setBoard();
+
+// need a separate variable for the starting board with revealed tiles
+// then another for the board that's used to play it to see if it's possible
+let gameBoard = initBoard();
+createGameBoard();
+let setupBoard = clone(gameBoard);
+formatSetupBoard()
+solvePuzzle()
+console.log("gameBoard: ", gameBoard);
