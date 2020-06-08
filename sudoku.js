@@ -23,10 +23,10 @@ function initBoard() {
 }
 
 
-let availableBoardTiles = [];
+let availableGameBoardTiles = [];
 for (let i = 0; i < gridHeight; i++) {
   for (let k = 0; k < gridWidth; k++) {
-    availableBoardTiles.push([i, k])
+    availableGameBoardTiles.push([i, k])
   }
 }
 
@@ -453,14 +453,16 @@ function getBoardTile(coordinates) {
 
 function setGameBoardTile(coordinates, tile) {
   gameBoard[coordinates[0]][coordinates[1]] = tile;
+  removeFromAvailabilityBoard(coordinates);
+  if (availabilityBoardMismatch() === false) {
+    console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
+    console.log("availableGameBoardTiles: ", availableGameBoardTiles)
+    // debugger;
+  }
 }
 
 function getGameBoardTile(coordinates) {
-  try {
-    return gameBoard[coordinates[0]][coordinates[1]];
-  } catch (err) {
-    debugger
-  }
+  return gameBoard[coordinates[0]][coordinates[1]];
 }
 
 function isGridComplete(grid) {
@@ -544,17 +546,25 @@ function getQuadrantGridValues(coordinates) {
   return getGridValues(grid);
 }
 
-function getRowGridValues(row) {
+function getRowGrids(row) {
   const rowGrids = [firstRow, secondRow, thirdRow, fourthRow, fifthRow, sixthRow, seventhRow, eighthRow, ninthRow]
 
-  let grid = rowGrids[row];
+  return rowGrids[row];
+}
+
+function getRowGridValues(row) {
+  let grid = getRowGrids(row);
   return getGridValues(grid);
 }
 
-function getColumnGridValues(column) {
+function getColumnGrids(column) {
   const columnGrids = [firstColumn, secondColumn, thirdColumn, fourthColumn, fifthColumn, sixthColumn, seventhColumn, eighthColumn, ninthColumn]
 
-  let grid = columnGrids[column];
+  return columnGrids[column];
+}
+
+function getColumnGridValues(column) {
+  let grid = getColumnGrids(column);
   return getGridValues(grid);
 }
 
@@ -622,20 +632,18 @@ function coordinatesEqual(a, b) {
 }
 
 function getAvailabilityIndex(coordinates) {
-  for (let i = 0; i < availableBoardTiles.length; i++) {
-    if (coordinatesEqual(coordinates, availableBoardTiles[i])) {
+  for (let i = 0; i < availableGameBoardTiles.length; i++) {
+    if (coordinatesEqual(coordinates, availableGameBoardTiles[i])) {
       return i;
     }
   }
 }
 
 function removeFromAvailabilityBoard(coordinates) {
-  let index = getAvailabilityIndex(coordinates);
-  availableBoardTiles.splice(index, 1);
-}
+  // let index = getAvailabilityIndex(coordinates);
+  // availableGameBoardTiles.splice(index, 1);
 
-function getNextOpenTile() {
-  return availableBoardTiles[Math.floor(Math.random() * availableBoardTiles.length)];
+  availableGameBoardTiles = availableGameBoardTiles.filter(e => !coordinatesEqual(e, coordinates))
 }
 
 function getAdjacentGrids(coordinates) {
@@ -927,7 +935,7 @@ function createGameBoard() {
 
   for (coordinates of revealedTiles) {
     let value = getBoardTile(coordinates);
-    gameBoard[coordinates[0]][coordinates[1]] = value;
+    // gameBoard[coordinates[0]][coordinates[1]] = value;
     setGameBoardTile(coordinates, value);
   }
 
@@ -965,7 +973,7 @@ function isGameBoardGridComplete(subGrid) {
   let countToNine = clone(countToNineArray);
 
   for (coordinates of subGrid) {
-    let tile = gameBoard[coordinates[0]][coordinates[1]];
+    let tile = getGameBoardTile(coordinates);
     let index = countToNine.indexOf(tile);
 
     if (index < 0) {
@@ -987,17 +995,19 @@ function isGameBoardComplete() {
   return true;
 }
 
-function formatSetupBoard() {
+function formatBoardAsStrings(boardObj) {
+  let stringBoard = clone(boardObj);
   for (let i = 0; i < gridWidth; i++) {
     for (let k = 0; k < gridHeight; k++) {
-      let value = setupBoard[i][k]
+      let value = boardObj[i][k]
       if (value === blankTile) {
-        setupBoard[i][k] = ' ';
+        stringBoard[i][k] = ' ';
       } else {
-        setupBoard[i][k] = value.toString();
+        stringBoard[i][k] = value.toString();
       }
     }
   }
+  return stringBoard;
 }
 
 // function getRowsAndColumnsForSubGrid(subGrid) {
@@ -1024,15 +1034,67 @@ function formatSetupBoard() {
 //   // debugger
 // }
 
-function removeNumFromPossibleCoordinates(int, possibleCoordinates, subGrid) {
-  for (coordinates of subGrid) {
-    let row = coordinates[0];
-    let column = coordinates[1];
-    if (possibleCoordinates[row][column].includes(int)) {
-      possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
-    }
+function removeNumFromArray(int, coordinates, possibleCoordinates) {
+  let row = coordinates[0];
+  let column = coordinates[1];
+  if (possibleCoordinates[row][column].includes(int)) {
+    possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
   }
   return possibleCoordinates;
+}
+
+function removeNumFromPossibleCoordinates(int, currentCoordinates, possibleCoordinates, subGrid) {
+  let row = currentCoordinates[0];
+  let column = currentCoordinates[1];
+
+  let rowCoordinates = getRowGrids(row)
+  let columnCoordinates = getColumnGrids(column)
+
+  for (coordinates of rowCoordinates) {
+    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+  }
+
+  for (coordinates of columnCoordinates) {
+    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+  }
+
+  for (coordinates of subGrid) {
+    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+  }
+  return possibleCoordinates;
+}
+
+function updatePossibleMoves() {
+  // TODO:
+  // whenever a play is made, need to remove any other instances of that played number from
+  // possible moves in that column, row and subGrid
+
+  // if doing this, may not need to check for possible moves anymore
+  // and only look at existing possible moves and keep updating them
+}
+
+function availabilityBoardMismatch() {
+  let tilesMismatched = [];
+  let availabilityIndex = 0;
+
+  try {
+    for (let i = 0; i < gridHeight; i++) {
+      for (let k = 0; k < gridWidth; k++) {
+        if (gameBoard[i][k] === blankTile) {
+          if (!coordinatesEqual(availableGameBoardTiles[availabilityIndex], [i, k])) {
+            console.log(`mismatch: ${availableGameBoardTiles[availabilityIndex]} ${[i, k]}`)
+            // tilesMismatched.push([i, k])
+            return false
+          }
+          availabilityIndex++
+        }
+      }
+    }
+    // console.log("tilesMismatched: ", tilesMismatched);
+    // return tilesMismatched.length === 0;
+  } catch(err) {
+    debugger
+  }
 }
 
 function solvePuzzle() {
@@ -1060,8 +1122,12 @@ function solvePuzzle() {
 
   let counter = 0;
   while (isGameBoardComplete() === false) {
+  
+  // TODO: refactor that loop only through available Tiles
+  // while (availableGameBoardTiles.length > 0) {
+
     // get all of the possible moves for each blank tile in each subGrid
-    // set when there is only one possible value
+    // set when there is only one possible value or add to the list of possibleMoves when > 2 option
     for (grid of allGrids) {
       for (coordinates of grid.coordinates) {
         let row = coordinates[0];
@@ -1075,33 +1141,18 @@ function solvePuzzle() {
             setGameBoardTile(coordinates, tileValue);
             claimedCoordinates.rows[tileValue].push(row);
             claimedCoordinates.columns[tileValue].push(column);
-            possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, possibleCoordinates, grid.coordinates);
+            possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, coordinates, possibleCoordinates, grid.coordinates);
           } else if (possibleValues.length > 1) {
             // TODO: need to maintain possible moves on each coordinate and clean it up whenever
             // an effecting play is made
-            possibleCoordinates[row][column] = [];
+            // or else can't claim and then play later with current implementation
+            // possibleCoordinates[row][column] = [];
             for (num of possibleValues) {
               possibleCoordinates[row][column].push(num)
             }
           }
         }
       }
-
-      // TODO: delete this function
-      // let rowsAndColumns = getRowsAndColumnsForSubGrid(grid);
-
-      // TODO: play any number that only has one possible play
-      // claim a row or column where any number with multiple options are all restricted to the same row or column
-
-      // first: count the instances of each number, and play anything that only exists once
-      // (remove that coordinate from the possible coordinates)
-
-      // play any number that is only possible at one coordinate
-      // and claim any any number that is only possible in a single row or column for that row or column
-
-      // debugger;
-      // console.log("debugger ignored")
-      // console.log("counter: ", counter)
 
       let locationsArray = {};
 
@@ -1120,31 +1171,9 @@ function solvePuzzle() {
         }
       }
 
-      // I think there are bugs in here that could lead this:
-      // [7, 6, 2, 9, 1, 8, 4, 3, 5]
-      // [9, 1, 4, 7, 5, 3, 8, 2, 6]
-      // [3, 8, 5, 2, 6, 4, 7, 9, 1]
-      // [5, 4, 9, 8, 2, 6, 1, 7, 3]
-      // [6, 7, 1, 5, 3, 9, 2, 8, 4]
-      // [8, 2, 3, 4, 7, 1, 6, 5, 9]
-      // [2, 9, 6, 3, 4, 7, 5, 1, 8]
-      // [4, 5, 8, 1, 9, 2, 3, 6, 7]
-      // [1, 3, 7, 6, 8, 5, 9, 4, 2]
-
-      // to be solved like this:
-      // [7, 0, 2, 1, 6, 8, 5, 3, 0]
-      // [9, 1, 4, 7, 3, 0, 0, 0, 6]
-      // [3, 8, 5, 2, 4, 0, 7, 9, 1]
-      // [5, 4, 6, 9, 2, 3, 1, 7, 8]
-      // [0, 7, 1, 5, 0, 6, 0, 0, 4]
-      // [0, 2, 0, 4, 7, 1, 6, 5, 3]
-      // [2, 9, 0, 3, 1, 7, 4, 0, 5]
-      // [6, 0, 8, 0, 0, 2, 3, 0, 7]
-      // [1, 3, 7, 6, 5, 0, 9, 8, 2]
-
       for (int in locationsArray) {
-        let locations = locationsArray[int];
         int = parseInt(int);
+        let locations = locationsArray[int];
         if (locations.length === 1) {
           let row = locations[0][0];
           let column = locations[0][1];
@@ -1195,6 +1224,7 @@ setBoard();
 let gameBoard = initBoard();
 createGameBoard();
 let setupBoard = clone(gameBoard);
-formatSetupBoard()
-solvePuzzle()
-console.log("gameBoard: ", gameBoard);
+solvePuzzle();
+console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
+console.log("availableGameBoardTiles: ", availableGameBoardTiles)
+
