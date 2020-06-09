@@ -8,7 +8,7 @@ const countToNineArray = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const maxRetries = 25;
 const maxRetriesPerRetry = 15;
 
-const numOfRevealedGameTiles = 30;
+const numOfRevealedGameTiles = 35;
 
 // initialize the board as an empty grid
 function initBoard() {
@@ -452,12 +452,13 @@ function getBoardTile(coordinates) {
 }
 
 function setGameBoardTile(coordinates, tile) {
-  gameBoard[coordinates[0]][coordinates[1]] = tile;
+  let row = coordinates[0];
+  let column = coordinates[1];
+  gameBoard[row][column] = tile;
   removeFromAvailabilityBoard(coordinates);
-  if (availabilityBoardMismatch() === false) {
-    console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
-    console.log("availableGameBoardTiles: ", availableGameBoardTiles)
-    // debugger;
+  if (isMoveIllegal(coordinates) === true) {
+    debugger;
+    console.log("illegal: ", tile, coordinates);
   }
 }
 
@@ -528,6 +529,15 @@ function getGridValues(grid) {
   return gridValues;
 }
 
+function getGameBoardGridValues(grid) {
+  let gridValues = [];
+
+  for (coordinates of grid) {
+    gridValues.push(gameBoard[coordinates[0]][coordinates[1]])
+  }
+  return gridValues;
+}
+
 function getGridQuadrantName(coordinates) {
   let row = coordinates[0];
   let column = coordinates[1];
@@ -540,10 +550,20 @@ function getGridQuadrantName(coordinates) {
   return gridString;
 }
 
+function getSubGrid(coordinates) {
+  return eval(getGridQuadrantName(coordinates)).coordinates;
+}
+
 function getQuadrantGridValues(coordinates) {
-  let grid = eval(getGridQuadrantName(coordinates));
+  let grid = getSubGrid(coordinates)
 
   return getGridValues(grid);
+}
+
+function getQuadrantGameBoardValues(coordinates) {
+  let grid = getSubGrid(coordinates);
+
+  return getGameBoardGridValues(grid);
 }
 
 function getRowGrids(row) {
@@ -557,6 +577,11 @@ function getRowGridValues(row) {
   return getGridValues(grid);
 }
 
+function getRowGameBoardValues(row) {
+  let grid = getRowGrids(row);
+  return getGameBoardGridValues(grid);
+}
+
 function getColumnGrids(column) {
   const columnGrids = [firstColumn, secondColumn, thirdColumn, fourthColumn, fifthColumn, sixthColumn, seventhColumn, eighthColumn, ninthColumn]
 
@@ -568,8 +593,27 @@ function getColumnGridValues(column) {
   return getGridValues(grid);
 }
 
+function getColumnGameBoardValues(column) {
+  let grid = getColumnGrids(column);
+  return getGameBoardGridValues(grid);
+}
+
+function getGameBoardGridsValues(coordinates) {
+  let row = coordinates[0];
+  let column = coordinates[1];
+
+  let rowGridValues = getRowGameBoardValues(row);
+  let columnGridValues = getColumnGameBoardValues(column);
+  let subGridValues = getQuadrantGameBoardValues(coordinates);
+
+  return [rowGridValues, columnGridValues, subGridValues];
+}
+
 function containsDuplicates(array) {
   for (item of array) {
+    if (item === blankTile) {
+      continue
+    }
     let dupesArray = array.filter(e => e === item)
     if (dupesArray.length > 1) {
       return true;
@@ -578,27 +622,8 @@ function containsDuplicates(array) {
   return false;
 }
 
-function getGridsValues(coordinates) {
-  let row = coordinates[0];
-  let column = coordinates[1];
-
-  let quadrantGrid = getQuadrantGridValues(coordinates);
-  let rowGrid = getRowGridValues(row);
-  let columnGrid = getColumnGridValues(column);
-
-  return [quadrantGrid, rowGrid, columnGrid];
-}
-
 function isMoveIllegal(coordinates) {
-  let grids = getGridsValues(coordinates);
-
-  // this could definitely be smarter
-  // like there are multiple ways to determine if a play is illegal in sudoku beyond
-  // this simplistic approach (eg. the above row may force a 9 into a certain grid which makes the placement of the 9 in the below row in the same grid illegal)
-
-  // additionally, getting a list of all legal moves for a tile might be the way to build the random board:
-  // get the list of legal moves, and then randomly select one
-  // if legal moves in 0, then start over or go back x moves and try again
+  let grids = getGameBoardGridsValues(coordinates);
 
   for (grid of grids) {
     if (containsDuplicates(grid)) {
@@ -873,7 +898,6 @@ function setBoard() {
         }
 
         [undoLastCoordinates, int, k] = undoLastXTiles(perRetries, int, k);
-        console.log("count")
         i = int - 1;
         continue
       }
@@ -942,10 +966,11 @@ function createGameBoard() {
   return gameBoard;
 }
 
-function getPossibleValues(coordinates, subGrid, claimedCoordinates) {
+function getPossibleValues(coordinates, claimedCoordinates) {
   let possibleValues = clone(countToNineArray);
   let row = coordinates[0];
   let column = coordinates[1];
+  let subGrid = getSubGrid(coordinates);
 
   let numsInSubGrid = subGrid.map(e => gameBoard[e[0]][e[1]]).filter(e => e !== blankTile);
 
@@ -1037,29 +1062,34 @@ function formatBoardAsStrings(boardObj) {
 function removeNumFromArray(int, coordinates, possibleCoordinates) {
   let row = coordinates[0];
   let column = coordinates[1];
+
   if (possibleCoordinates[row][column].includes(int)) {
     possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
   }
+
   return possibleCoordinates;
 }
 
-function removeNumFromPossibleCoordinates(int, currentCoordinates, possibleCoordinates, subGrid) {
-  let row = currentCoordinates[0];
-  let column = currentCoordinates[1];
-
-  let rowCoordinates = getRowGrids(row)
-  let columnCoordinates = getColumnGrids(column)
-
-  for (coordinates of rowCoordinates) {
-    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates) {
+  if (row !== null) {
+    let rowCoordinates = getRowGrids(row)
+    for (coordinates of rowCoordinates) {
+      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+    }
   }
 
-  for (coordinates of columnCoordinates) {
-    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+  if (column !== null) {
+    let columnCoordinates = getColumnGrids(column)
+    for (coordinates of columnCoordinates) {
+      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+    }
   }
 
-  for (coordinates of subGrid) {
-    possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+  if (row !== null && column !== null) {
+    let subGrid = getSubGrid([row, column]);
+    for (coordinates of subGrid) {
+      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+    }
   }
   return possibleCoordinates;
 }
@@ -1092,9 +1122,76 @@ function availabilityBoardMismatch() {
     }
     // console.log("tilesMismatched: ", tilesMismatched);
     // return tilesMismatched.length === 0;
-  } catch(err) {
+  } catch (err) {
     debugger
   }
+}
+
+function solutionErrorCheck() {
+  let errorReport = {
+    errors: 0,
+    errorCoordinates: [],
+  }
+
+  for (subGrid of allGrids) {
+    for (coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let gameBoardTile = gameBoard[row][column];
+      let solutionTile = board[row][column];
+      if (gameBoardTile === blankTile) {
+        continue
+      }
+      if (gameBoardTile !== solutionTile) {
+        errorReport.errors++;
+        errorReport.errorCoordinates.push(coordinates)
+      }
+    }
+  }
+  console.log("solutionErrorReport: ", errorReport);
+}
+
+function possibleCoordinatesErrorCheck(possibleCoordinates) {
+  let errorReport = {
+    errors: 0,
+    errorCoordinates: [],
+  }
+
+  for (subGrid of allGrids) {
+    for (coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let possibleCoordinateTile = possibleCoordinates[row][column];
+      let gameBoardTile = gameBoard[row][column];
+      if (gameBoardTile === blankTile) {
+        if (possibleCoordinateTile.length === 0) {
+          errorReport.errors++;
+          errorReport.errorCoordinates.push(coordinates)
+        }
+      }
+      if (gameBoardTile !== blankTile) {
+        if (possibleCoordinateTile.length > 0) {
+          errorReport.errors++;
+          errorReport.errorCoordinates.push(coordinates)
+        }
+      }
+    }
+  }
+  console.log("possibleCoordinatesErrorReport: ", errorReport);
+}
+
+function boardCompleteCheck() {
+  for (subGrid of allGrids) {
+    for (coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let gameBoardTile = gameBoard[row][column];
+      if (gameBoardTile === blankTile) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 function solvePuzzle() {
@@ -1118,54 +1215,50 @@ function solvePuzzle() {
     }
   }
 
-  let possibleCoordinates = initPossibleCoordinatesBoard();
+  for (coordinates of availableGameBoardTiles) {
+    let row = coordinates[0];
+    let column = coordinates[1];
+
+    let possibleValues = getPossibleValues(coordinates, claimedCoordinates);
+    if (possibleValues.length === 1) {
+      let tileValue = possibleValues[0];
+      setGameBoardTile(coordinates, tileValue);
+      claimedCoordinates.rows[tileValue].push(row);
+      claimedCoordinates.columns[tileValue].push(column);
+      possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
+    } else if (possibleValues.length > 1) {
+      for (num of possibleValues) {
+        possibleCoordinates[row][column].push(num)
+      }
+    }
+  }
 
   let counter = 0;
-  while (isGameBoardComplete() === false) {
-  
-  // TODO: refactor that loop only through available Tiles
   // while (availableGameBoardTiles.length > 0) {
-
-    // get all of the possible moves for each blank tile in each subGrid
-    // set when there is only one possible value or add to the list of possibleMoves when > 2 option
-    for (grid of allGrids) {
-      for (coordinates of grid.coordinates) {
-        let row = coordinates[0];
-        let column = coordinates[1];
-
-        let tile = getGameBoardTile([coordinates[0], coordinates[1]]);
-        if (tile === blankTile) {
-          let possibleValues = getPossibleValues(coordinates, grid.coordinates, claimedCoordinates);
-          if (possibleValues.length === 1) {
-            let tileValue = possibleValues[0];
-            setGameBoardTile(coordinates, tileValue);
-            claimedCoordinates.rows[tileValue].push(row);
-            claimedCoordinates.columns[tileValue].push(column);
-            possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, coordinates, possibleCoordinates, grid.coordinates);
-          } else if (possibleValues.length > 1) {
-            // TODO: need to maintain possible moves on each coordinate and clean it up whenever
-            // an effecting play is made
-            // or else can't claim and then play later with current implementation
-            // possibleCoordinates[row][column] = [];
-            for (num of possibleValues) {
-              possibleCoordinates[row][column].push(num)
-            }
-          }
-        }
-      }
-
+  while (true) {
+    for (subGrid of allGrids) {
       let locationsArray = {};
-
-      for (coordinates of grid.coordinates) {
+      for (coordinates of subGrid.coordinates) {
         let row = coordinates[0];
         let column = coordinates[1];
+        let possibleValues = possibleCoordinates[row][column];
 
-        if (possibleCoordinates[row][column].length > 0) {
-          for (int of possibleCoordinates[row][column]) {
+        if (possibleValues.length === 0) {
+          continue
+        }
+
+        if (possibleValues.length === 1) {
+          let tileValue = possibleValues[0];
+          setGameBoardTile(coordinates, tileValue);
+          claimedCoordinates.rows[tileValue].push(row);
+          claimedCoordinates.columns[tileValue].push(column);
+          possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
+        } else if (possibleValues.length > 1) {
+          for (int of possibleValues) {
             if (Array.isArray(locationsArray[int])) {
-              locationsArray[int].push(coordinates);
+              locationsArray[int].push([row, column]);
             } else {
-              locationsArray[int] = [coordinates];
+              locationsArray[int] = [row, column];
             }
           }
         }
@@ -1174,14 +1267,17 @@ function solvePuzzle() {
       for (int in locationsArray) {
         int = parseInt(int);
         let locations = locationsArray[int];
-        if (locations.length === 1) {
+        // num might only be possible in one tile, but that tile might have other possible nums
+        if (locations.length === 1 && possibleCoordinates[row][column].includes(tile)) {
           let row = locations[0][0];
           let column = locations[0][1];
           setGameBoardTile(locations[0], int);
-          claimedCoordinates.rows[int].push(row);
-          claimedCoordinates.columns[int].push(column);
+          // claimedCoordinates.rows[int].push(row);
+          // claimedCoordinates.columns[int].push(column);
+          possibleCoordinates = removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates)
           possibleCoordinates[row][column] = [];
-        } else if (locations.length > 1) {
+          // might be able to claim a row or a column when multiple tiles are possible for a single num
+        } else if (locations[0].length > 1) {
           let rows = [];
           let columns = [];
 
@@ -1193,17 +1289,32 @@ function solvePuzzle() {
           let uniqueColumns = [...new Set(columns)]
 
           if (uniqueRows.length === 1) {
-            // this will cause the claimed int never to be played because it's already been claimed
-            claimedCoordinates.rows[int].push(uniqueRows[0]);
+            // console.log("unique row: ", int, uniqueRows[0])
+            // claimedCoordinates.rows[int].push(uniqueRows[0]);
+            // debugger
+            possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
+            for (column of uniqueColumns) {
+              possibleCoordinates[uniqueRows[0]][column].push(int);
+            }
           }
           if (uniqueColumns.length === 1) {
-            claimedCoordinates.columns[int].push(uniqueColumns[0]);
+            // console.log("unique column: ", int, uniqueColumns[0])
+            // claimedCoordinates.columns[int].push(uniqueColumns[0]);
+            // debugger
+            possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
+            for (row of uniqueRows) {
+              possibleCoordinates[row][uniqueColumns[0]].push(int);
+            }
           }
         }
       }
     }
+
+
     counter++;
     if (counter > 100) {
+      possibleCoordinatesErrorCheck(possibleCoordinates)
+      console.log("possibleCoordinates: ", possibleCoordinates);
       break
       counter = 0;
       gameBoard = initBoard();
@@ -1223,8 +1334,12 @@ setBoard();
 // then another for the board that's used to play it to see if it's possible
 let gameBoard = initBoard();
 createGameBoard();
+let possibleCoordinates = initPossibleCoordinatesBoard();
 let setupBoard = clone(gameBoard);
+console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
 solvePuzzle();
 console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
-console.log("availableGameBoardTiles: ", availableGameBoardTiles)
-
+// console.log("availableGameBoardTiles: ", availableGameBoardTiles)
+// console.log("solution board: ", formatBoardAsStrings(board))
+solutionErrorCheck()
+console.log("gameBoard completed: ", boardCompleteCheck());
