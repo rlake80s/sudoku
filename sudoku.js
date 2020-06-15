@@ -22,14 +22,15 @@ function initBoard() {
   return board;
 }
 
-
-let availableGameBoardTiles = [];
-for (let i = 0; i < gridHeight; i++) {
-  for (let k = 0; k < gridWidth; k++) {
-    availableGameBoardTiles.push([i, k])
+function initAvailableGameBoardTiles() {
+  let availableGameBoardTiles = [];
+  for (let i = 0; i < gridHeight; i++) {
+    for (let k = 0; k < gridWidth; k++) {
+      availableGameBoardTiles.push([i, k])
+    }
   }
+  return availableGameBoardTiles;
 }
-
 
 // left side grids
 const topLeftGridTopRow = [
@@ -470,22 +471,13 @@ function setGameBoardTile(coordinates, tile) {
   }
   gameBoard[row][column] = tile;
   removeFromAvailabilityBoard(coordinates);
-  // if (isMoveIllegal(coordinates) === true) {
-  //   printGameBoard()
-  //   // debugger;
-  //   console.log("illegal: ", tile, coordinates);
-  // }
 }
 
-function setPossibleCoordinates(coordinates, values, possibleCoordinates, setup) {
+function setPossibleCoordinates(coordinates, values, possibleCoordinates) {
   let row = coordinates[0];
   let column = coordinates[1];
 
   possibleCoordinates[row][column] = values;
-
-  if (setup === undefined && values.length === 0 && getGameBoardTile(coordinates) === blankTile) {
-    debugger
-  }
 
   return possibleCoordinates;
 }
@@ -641,19 +633,6 @@ function getGameBoardGridsValues(coordinates) {
   return [rowGridValues, columnGridValues, subGridValues];
 }
 
-// function containsDuplicates(array) {
-//   for (let item of array) {
-//     if (item === blankTile) {
-//       continue
-//     }
-//     let dupesArray = array.filter(e => e === item)
-//     if (dupesArray.length > 1) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-
 function containsInt(array, int) {
   for (let item of array) {
     if (item === int) {
@@ -706,9 +685,6 @@ function getAvailabilityIndex(coordinates) {
 }
 
 function removeFromAvailabilityBoard(coordinates) {
-  // let index = getAvailabilityIndex(coordinates);
-  // availableGameBoardTiles.splice(index, 1);
-
   availableGameBoardTiles = availableGameBoardTiles.filter(e => !coordinatesEqual(e, coordinates))
 }
 
@@ -782,32 +758,6 @@ function getAdjacentGrids(coordinates) {
     index++;
   }
   return currentAdjacentGrids;
-}
-
-function setNextNumber() {
-  let nextOpenTile = getNextOpenTile();
-  let tileValue;
-
-  // should select the number, then check adjacent grids for possible moves with the number placed and make sure that we haven't broken ourselves
-
-  let possibleMoves = getPossibleLegalNumbers(nextOpenTile);
-
-  for (let i = 0; i < legalMoveRetries; i++) {
-    let move = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
-
-    // set move to clone of board to check if move is breaking
-    let boardCopy = clone(board);
-    boardCopy[nextOpenTile[0]][nextOpenTile[1]] = move;
-
-    let adjacentGrids = getAdjacentGrids(nextOpenTile);
-
-    // how to check adjacent grids?
-    // enough to iterate through open tiles and ensure that existing set tiles + open tile option can complete grid?
-    // this seems incomplete and the reality is much more subtle -- brute force approach would be to try and fill all the tiles in all the grids and then clawback if an error
-    // what would a more subtle approach look like?
-
-
-  }
 }
 
 function columnContainsNum(num, column) {
@@ -1000,7 +950,6 @@ function createGameBoard(gameBoard) {
 
   for (let coordinates of revealedTiles) {
     let value = getBoardTile(coordinates);
-    // gameBoard[coordinates[0]][coordinates[1]] = value;
     setGameBoardTile(coordinates, value);
   }
 
@@ -1082,50 +1031,6 @@ function formatBoardAsStrings(boardObj) {
   return stringBoard;
 }
 
-// function getRowsAndColumnsForSubGrid(subGrid) {
-//   let rowNumbers = subgrid.rows;
-//   let columnNumbers = subgrid.columns;
-
-//   let rows = [];
-//   for (row of rowNumbers) {
-//     let oneRow = [];
-//     for (column of columnNumbers) {
-//       oneRow.push([row, column]);
-//     }
-//     rows.push(oneRow);
-//   }
-
-//   let columns = [];
-//   for (columns of columnNumbers) {
-//     let oneColumn = [];
-//     for (row of rowNumbers) {
-//       oneColumn.push([row, column]);
-//     }
-//     columns.push(oneColumn);
-//   }
-//   // debugger
-// }
-
-// function removeNumFromArray(int, coordinates, possibleCoordinates) {
-function removeNumFromArray(int, coordinates, possibleCoordinates) {
-  let row = coordinates[0];
-  let column = coordinates[1];
-
-  // if (possibleCoordinates[row][column].includes(int)) {
-  // possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
-  // }
-
-  // try {
-  // possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
-  let filteredArray = possibleCoordinates[row][column].filter(e => e !== int)
-  // } catch {
-  //   debugger
-  // }
-
-  // return possibleCoordinates;
-  return filteredArray;
-}
-
 function arraysEqual(a1, a2) {
   if (a1.length !== a2.length) {
     return false;
@@ -1147,7 +1052,6 @@ function arraysEqual(a1, a2) {
 function removeNumFromPossibleCoordinatesRow(int, row, possibleCoordinates) {
   let rowCoordinates = getRowGrids(row)
   for (let coordinates of rowCoordinates) {
-    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
     let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
     setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
   }
@@ -1158,7 +1062,6 @@ function removeNumFromPossibleCoordinatesRow(int, row, possibleCoordinates) {
 function removeNumFromPossibleCoordinatesColumn(int, column, possibleCoordinates) {
   let columnCoordinates = getColumnGrids(column)
   for (let coordinates of columnCoordinates) {
-    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
     let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
     setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
   }
@@ -1169,7 +1072,6 @@ function removeNumFromPossibleCoordinatesColumn(int, column, possibleCoordinates
 function removeNumFromPossibleCoordinatesSubGrid(int, row, column, possibleCoordinates) {
   let subGrid = getSubGrid([row, column]);
   for (let coordinates of subGrid) {
-    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
     let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
     setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
   }
@@ -1177,6 +1079,7 @@ function removeNumFromPossibleCoordinatesSubGrid(int, row, column, possibleCoord
   return possibleCoordinates;
 }
 
+// was used for debugging
 function comparePossibleCoordinatesWithCache(possibleCoordinates) {
   for (let subGrid of allGrids) {
     for (let coordinates of subGrid.coordinates) {
@@ -1222,20 +1125,7 @@ function possibleCoordinatesEmptyIncorrectly(possibleCoordinates) {
   return false
 }
 
-function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates, setup) {
-  console.log("remove: ", int, [row, column]);
-
-  // check if possibleCoordinates is being changed outside this function
-  // debugger
-
-  // if (!(window.possibleCoordinates === undefined)) {
-  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
-  // }
-
-  if (setup === undefined && possibleCoordinatesEmptyIncorrectly(possibleCoordinates)) {
-    debugger
-  }
-
+function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates) {
   let errorReport = {
     int: int,
     coordinates: [row, column],
@@ -1247,8 +1137,8 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
     originalSubGrid: [],
     originalPossibleCoordinates: clone(possibleCoordinates)
   }
-  // if (row !== null) {
-  try {
+
+  if (row !== undefined) {
     let rowCoordinates = getRowGrids(row)
 
     for (let coordinates of rowCoordinates) {
@@ -1257,13 +1147,9 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
     }
 
     for (let coordinates of rowCoordinates) {
-      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
-      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
       let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
-      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
     }
-
-    // window.possibleCoordinates = possibleCoordinates;
 
     for (let coordinates of rowCoordinates) {
       let rowObject = getPossibleCoordinates(coordinates, possibleCoordinates)
@@ -1272,32 +1158,18 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
         debugger
       }
     }
-  } catch {}
+  }
 
-  // if (!(window.possibleCoordinates === undefined)) {
-  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
-  // }
-
-
-
-  try {
-    // if (column !== null) {
+  if (column !== undefined) {
     let columnCoordinates = getColumnGrids(column)
-    // if (row === null) {
-    //   // debugger
-    // }
     for (let coordinates of columnCoordinates) {
       let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
       errorReport.originalColumn.push(columnObject);
     }
     for (let coordinates of columnCoordinates) {
-      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
-      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
       let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
-      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
     }
-
-    // window.possibleCoordinates = possibleCoordinates;
 
     for (let coordinates of columnCoordinates) {
       let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
@@ -1306,19 +1178,9 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
         debugger
       }
     }
-    // if (row === null) {
-    //   // debugger
-    // }
-  } catch {}
+  }
 
-  // if (!(window.possibleCoordinates === undefined)) {
-  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
-  // }
-
-
-
-  // if (row !== null && column !== null) {
-  try {
+  if (row !== undefined && column !== undefined) {
     let subGrid = getSubGrid([row, column]);
 
     for (let coordinates of subGrid) {
@@ -1326,10 +1188,8 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
       errorReport.originalSubGrid.push(subGridObject);
     }
     for (let coordinates of subGrid) {
-      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
-      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
       let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
-      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
     }
     for (let coordinates of subGrid) {
       let gridObject = getPossibleCoordinates(coordinates, possibleCoordinates)
@@ -1338,59 +1198,15 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates,
         debugger
       }
     }
-  } catch {}
-
-  // if (!(window.possibleCoordinates === undefined)) {
-  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
-  // }
+  }
 
   if (arePossibleCoordinatesIllegal(possibleCoordinates)) {
     debugger
   }
 
-  console.log("setup: ", setup)
-
-  if (setup === undefined && possibleCoordinatesEmptyIncorrectly(possibleCoordinates)) {
-    debugger
-  }
-
-  console.log("possible remove report: ", errorReport)
-  // window.possibleCoordinates = possibleCoordinates;
+  // console.log("possible remove report: ", errorReport)
 
   return possibleCoordinates;
-}
-
-function updatePossibleMoves() {
-  // TODO:
-  // whenever a play is made, need to remove any other instances of that played number from
-  // possible moves in that column, row and subGrid
-
-  // if doing this, may not need to check for possible moves anymore
-  // and only look at existing possible moves and keep updating them
-}
-
-function availabilityBoardMismatch() {
-  let tilesMismatched = [];
-  let availabilityIndex = 0;
-
-  try {
-    for (let i = 0; i < gridHeight; i++) {
-      for (let k = 0; k < gridWidth; k++) {
-        if (gameBoard[i][k] === blankTile) {
-          if (!coordinatesEqual(availableGameBoardTiles[availabilityIndex], [i, k])) {
-            console.log(`mismatch: ${availableGameBoardTiles[availabilityIndex]} ${[i, k]}`)
-            // tilesMismatched.push([i, k])
-            return false
-          }
-          availabilityIndex++
-        }
-      }
-    }
-    // console.log("tilesMismatched: ", tilesMismatched);
-    // return tilesMismatched.length === 0;
-  } catch (err) {
-    debugger
-  }
 }
 
 function solutionErrorCheck() {
@@ -1460,6 +1276,10 @@ function possibleCoordinatesErrorCheck(possibleCoordinates) {
 }
 
 function boardCompleteCheck() {
+  return blankTileCount() === 0;
+}
+
+function blankTileCount() {
   let blankTileCount = 0;
 
   for (let subGrid of allGrids) {
@@ -1473,8 +1293,7 @@ function boardCompleteCheck() {
     }
   }
   console.log("blankTileCount: ", blankTileCount);
-
-  return blankTileCount === 0;
+  return blankTileCount;
 }
 
 function printGameBoard() {
@@ -1486,7 +1305,6 @@ function removeCoordinatesFromPossByInt(coordinatesToRemove, possibleCoordinateB
   let newPossibleCoordinateByInt = {}
   for (let int in possibleCoordinateByInt) {
     newPossibleCoordinateByInt[int] = [];
-    // for (let coordinates of possibleCoordinateByInt[int]) {
     for (let i = 0; i < possibleCoordinateByInt[int].length; i++) {
       let coordinates = possibleCoordinateByInt[int][i];
       if (!coordinatesEqual([coordinates[0], coordinates[1]], coordinatesToRemove)) {
@@ -1495,9 +1313,6 @@ function removeCoordinatesFromPossByInt(coordinatesToRemove, possibleCoordinateB
         newPossibleCoordinateByInt[int].push([coordinates[0], coordinates[1]]);
       }
     }
-    // if (indexToRemove !== undefined) {
-    //   possibleCoordinateByInt[int].splice(indexToRemove, 0);
-    // }
   }
   for (let int in newPossibleCoordinateByInt) {
     int = parseInt(int);
@@ -1533,14 +1348,9 @@ function solvePuzzle() {
     }
   }
 
-  // let possibleCoordinates = initPossibleCoordinatesBoard();
+  let possibleCoordinates = initPossibleCoordinatesBoard();
 
   for (let coordinates of availableGameBoardTiles) {
-    // let row = coordinates[0];
-    // let column = coordinates[1];
-
-    // let possibleValues = getPossibleValues(coordinates, claimedCoordinates);
-    let throwAway = coordinates;
     let row = coordinates[0];
     let column = coordinates[1];
     let possibleValues = getPossibleValues([row, column]);
@@ -1549,20 +1359,9 @@ function solvePuzzle() {
       setGameBoardTile([row, column], tileValue);
       claimedCoordinates.rows[tileValue].push(row);
       claimedCoordinates.columns[tileValue].push(column);
-      possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates, true);
-
-      // possibleCoordinates = removeNumFromPossibleCoordinatesRow(tileValue, row, possibleCoordinates) 
-      // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(tileValue, column, possibleCoordinates)
-      // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(tileValue, row, column, possibleCoordinates) 
-
+      possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
     } else if (possibleValues.length > 1) {
       for (let num of possibleValues) {
-        if (!coordinatesEqual(coordinates, [row, column])) {
-          debugger
-        }
-        if (!coordinatesEqual(throwAway, [row, column])) {
-          debugger
-        }
         possibleCoordinates[row][column].push(num)
       }
     }
@@ -1573,13 +1372,7 @@ function solvePuzzle() {
   }
 
   let counter = 0;
-  // while (availableGameBoardTiles.length > 0) {
   while (true) {
-    // if (!(window.possibleCoordinates === undefined)) {
-    //   // debugger
-    //   // comparePossibleCoordinatesWithCache(possibleCoordinates)
-    // }
-
     for (let subGrid of allGrids) {
       let possibleCoordinateByInt = {};
 
@@ -1595,16 +1388,8 @@ function solvePuzzle() {
         if (possibleValues.length === 1) {
           let tileValue = possibleValues[0];
           setGameBoardTile([row, column], tileValue);
-          // claimedCoordinates.rows[tileValue].push(row);
-          // claimedCoordinates.columns[tileValue].push(column);
           possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
           possibleCoordinateByInt[tileValue] = [];
-
-
-
-          // possibleCoordinates = removeNumFromPossibleCoordinatesRow(tileValue, row, possibleCoordinates) 
-          // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(tileValue, column, possibleCoordinates)
-          // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(tileValue, row, column, possibleCoordinates) 
         } else if (possibleValues.length > 1) {
           for (let int of possibleValues) {
             if (Array.isArray(possibleCoordinateByInt[int])) {
@@ -1618,8 +1403,6 @@ function solvePuzzle() {
         }
       }
 
-      // continue
-
       for (int in possibleCoordinateByInt) {
         int = parseInt(int);
         let locations = possibleCoordinateByInt[int];
@@ -1631,22 +1414,15 @@ function solvePuzzle() {
         // num might only be possible in one tile, but that tile might have other possible nums
         let firstRow = locations[0][0];
         let firstColumn = locations[0][1];
-        // if (locations[0].length === 1 && possibleCoordinates[firstRow][firstColumn].includes(int))
         if (locations.length === 1) {
           setGameBoardTile([firstRow, firstColumn], int);
-          // claimedCoordinates.rows[int].push(row);
-          // claimedCoordinates.columns[int].push(column);
           possibleCoordinates = removeNumFromPossibleCoordinates(int, firstRow, firstColumn, possibleCoordinates)
-
-          // debugger
           possibleCoordinateByInt = removeCoordinatesFromPossByInt([firstRow, firstColumn], possibleCoordinateByInt);
-
-          // possibleCoordinates = removeNumFromPossibleCoordinatesRow(int, firstRow, possibleCoordinates) 
-          // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(int, firstColumn, possibleCoordinates)
-          // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(int, firstRow, firstColumn, possibleCoordinates) 
           possibleCoordinates[firstRow][firstColumn] = [];
-          // might be able to claim a row or a column when multiple tiles are possible for a single num
         } else if (locations.length > 1) {
+
+          // Not sure if this adds anything
+          // conceptually it seems it should, but need to look into it more, also:
 
           // TODO: this calls way too often
           // should maybe limit to when int is in row or column
@@ -1662,28 +1438,16 @@ function solvePuzzle() {
           let uniqueColumns = [...new Set(columns)]
 
           if (uniqueRows.length === 1) {
-            // console.log("unique row: ", int, uniqueRows[0])
-            // claimedCoordinates.rows[int].push(uniqueRows[0]);
-            // debugger
-            // possibleCoordinates = removeNumFromPossibleCoordinatesRow(int, uniqueRows[0], possibleCoordinates) 
-
             // possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
             // for (let column of uniqueColumns) {
             //   possibleCoordinates[uniqueRows[0]][column].push(int);
             // }
           } else if (uniqueColumns.length === 1) {
-            // console.log("unique column: ", int, uniqueColumns[0])
-            // claimedCoordinates.columns[int].push(uniqueColumns[0]);
-            // debugger
-            // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(int, uniqueColumns[0], possibleCoordinates)
-
             // possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
             // for (let row of uniqueRows) {
             //   possibleCoordinates[row][uniqueColumns[0]].push(int);
             // }
           }
-
-          // window.possibleCoordinates = possibleCoordinates;
         }
       }
     }
@@ -1693,13 +1457,15 @@ function solvePuzzle() {
     if (counter > 40) {
       console.log("possibleCoordinates: ", possibleCoordinates);
       possibleCoordinatesErrorCheck(possibleCoordinates)
-      break
-      // counter = 0;
-      // gameBoard = initBoard();
-      // createGameBoard();
-      // setupBoard = clone(gameBoard);
-      // formatSetupBoard()
-      // solvePuzzle();
+      if (blankTileCount() > 6) {
+        counter = 0;
+        availableGameBoardTiles = initAvailableGameBoardTiles()
+        gameBoard = initBoard();
+        createGameBoard();
+        setupBoard = clone(gameBoard);
+        possibleCoordinates = initPossibleCoordinatesBoard();
+        solvePuzzle();
+      }
       break
     }
   }
@@ -1710,25 +1476,13 @@ setBoard();
 
 // need a separate variable for the starting board with revealed tiles
 // then another for the board that's used to play it to see if it's possible
+let availableGameBoardTiles = initAvailableGameBoardTiles()
 let gameBoard = initBoard();
 createGameBoard();
 let possibleCoordinates = initPossibleCoordinatesBoard();
-// let setupBoard = clone(gameBoard);
-// console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
+let setupBoard = clone(gameBoard);
+console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
 solvePuzzle();
 console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
-// console.log("availableGameBoardTiles: ", availableGameBoardTiles)
 solutionErrorCheck()
 console.log("gameBoard completed: ", boardCompleteCheck());
-
-
-
-// ["7", " ", " ", " ", "3", " ", "9", " ", " "]
-// ["3", " ", "8", " ", "2", " ", " ", "7", " "]
-// ["5", "4", " ", " ", "7", "6", "1", " ", "3"]
-// ["8", " ", " ", "5", "4", "3", "2", "6", " "]
-// ["6", " ", "3", "2", "9", "8", "5", "4", " "]
-// ["4", "2", "5", "1", "6", "7", "8", "3", "9"]
-// ["1", "5", "7", "6", "8", "4", "3", "9", "2"]
-// ["9", "3", " ", "7", "5", "2", " ", "1", "8"]
-// ["2", "8", " ", "3", "1", "9", "2", "5", " "]
