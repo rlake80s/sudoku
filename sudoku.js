@@ -451,25 +451,57 @@ function getBoardTile(coordinates) {
   return board[coordinates[0]][coordinates[1]];
 }
 
+function isMoveIncorrect(coordinates, tile) {
+  let row = coordinates[0];
+  let column = coordinates[1];
+
+  if (board[row][column] !== tile) {
+    return true
+  }
+  return false;
+}
+
 function setGameBoardTile(coordinates, tile) {
   let row = coordinates[0];
   let column = coordinates[1];
+  if (isMoveIncorrect(coordinates, tile)) {
+    console.log("board: ", formatBoardAsStrings(board));
+    debugger
+  }
   gameBoard[row][column] = tile;
   removeFromAvailabilityBoard(coordinates);
-  if (isMoveIllegal(coordinates) === true) {
-    debugger;
-    console.log("illegal: ", tile, coordinates);
+  // if (isMoveIllegal(coordinates) === true) {
+  //   printGameBoard()
+  //   // debugger;
+  //   console.log("illegal: ", tile, coordinates);
+  // }
+}
+
+function setPossibleCoordinates(coordinates, values, possibleCoordinates, setup) {
+  let row = coordinates[0];
+  let column = coordinates[1];
+
+  possibleCoordinates[row][column] = values;
+
+  if (setup === undefined && values.length === 0 && getGameBoardTile(coordinates) === blankTile) {
+    debugger
   }
+
+  return possibleCoordinates;
 }
 
 function getGameBoardTile(coordinates) {
   return gameBoard[coordinates[0]][coordinates[1]];
 }
 
+function getPossibleCoordinates(coordinates, possibleCoordinates) {
+  return possibleCoordinates[coordinates[0]][coordinates[1]];
+}
+
 function isGridComplete(grid) {
   let countToNine = clone(countToNineArray);
 
-  for (coordinates of grid) {
+  for (let coordinates of grid) {
     let tile = board[coordinates[0]][coordinates[1]];
     let index = countToNine.indexOf(tile);
 
@@ -484,7 +516,7 @@ function isGridComplete(grid) {
 }
 
 function isBoardComplete() {
-  for (grid of allGrids) {
+  for (let grid of allGrids) {
     if (!isGridComplete(grid.coordinates)) {
       return false;
     }
@@ -523,7 +555,7 @@ function getColumnPosition(column) {
 function getGridValues(grid) {
   let gridValues = [];
 
-  for (coordinates of grid) {
+  for (let coordinates of grid) {
     gridValues.push(board[coordinates[0]][coordinates[1]])
   }
   return gridValues;
@@ -532,7 +564,7 @@ function getGridValues(grid) {
 function getGameBoardGridValues(grid) {
   let gridValues = [];
 
-  for (coordinates of grid) {
+  for (let coordinates of grid) {
     gridValues.push(gameBoard[coordinates[0]][coordinates[1]])
   }
   return gridValues;
@@ -609,24 +641,33 @@ function getGameBoardGridsValues(coordinates) {
   return [rowGridValues, columnGridValues, subGridValues];
 }
 
-function containsDuplicates(array) {
-  for (item of array) {
-    if (item === blankTile) {
-      continue
-    }
-    let dupesArray = array.filter(e => e === item)
-    if (dupesArray.length > 1) {
+// function containsDuplicates(array) {
+//   for (let item of array) {
+//     if (item === blankTile) {
+//       continue
+//     }
+//     let dupesArray = array.filter(e => e === item)
+//     if (dupesArray.length > 1) {
+//       return true;
+//     }
+//   }
+//   return false;
+// }
+
+function containsInt(array, int) {
+  for (let item of array) {
+    if (item === int) {
       return true;
     }
   }
   return false;
 }
 
-function isMoveIllegal(coordinates) {
+function isMoveIllegal(coordinates, int) {
   let grids = getGameBoardGridsValues(coordinates);
 
-  for (grid of grids) {
-    if (containsDuplicates(grid)) {
+  for (let grid of grids) {
+    if (containsInt(grid, int)) {
       return true;
     }
   }
@@ -862,26 +903,26 @@ function setBoard() {
       let rowsWithNumSet = [];
       let columnWithNumSet = [];
 
-      for (row of grid.rows) {
+      for (let row of grid.rows) {
         if (rowContainsNum(int, row)) {
           rowsWithNumSet.push(row);
         }
       }
 
-      for (column of grid.columns) {
+      for (let column of grid.columns) {
         if (columnContainsNum(int, column)) {
           columnWithNumSet.push(column);
         }
       }
 
       if (rowsWithNumSet.length > 0) {
-        for (row of rowsWithNumSet) {
+        for (let row of rowsWithNumSet) {
           availableCoordinates = availableCoordinates.filter(e => e[0] !== row);
         }
       }
 
       if (columnWithNumSet.length > 0) {
-        for (column of columnWithNumSet) {
+        for (let column of columnWithNumSet) {
           availableCoordinates = availableCoordinates.filter(e => e[1] !== column);
         }
       }
@@ -914,7 +955,7 @@ function setBoard() {
   console.log(board);
 }
 
-function createGameBoard() {
+function createGameBoard(gameBoard) {
   let revealedTiles = [];
   // let remainingEmptyTiles = clone(allGrids).map((e) => e.coordinates).flat()
 
@@ -957,7 +998,7 @@ function createGameBoard() {
     }
   }
 
-  for (coordinates of revealedTiles) {
+  for (let coordinates of revealedTiles) {
     let value = getBoardTile(coordinates);
     // gameBoard[coordinates[0]][coordinates[1]] = value;
     setGameBoardTile(coordinates, value);
@@ -966,16 +1007,22 @@ function createGameBoard() {
   return gameBoard;
 }
 
-function getPossibleValues(coordinates, claimedCoordinates) {
+function getPossibleValues(coordinates) {
   let possibleValues = clone(countToNineArray);
   let row = coordinates[0];
   let column = coordinates[1];
   let subGrid = getSubGrid(coordinates);
 
+  if (!coordinatesEqual([row, column], coordinates)) {
+    debugger
+  }
+
+  let numsInRow = getRowGameBoardValues(row).filter(e => e !== blankTile);
+  let numsInColumn = getColumnGameBoardValues(column).filter(e => e !== blankTile);
   let numsInSubGrid = subGrid.map(e => gameBoard[e[0]][e[1]]).filter(e => e !== blankTile);
 
-  possibleValues = possibleValues.filter(e => !claimedCoordinates.rows[e].includes(row))
-  possibleValues = possibleValues.filter(e => !claimedCoordinates.columns[e].includes(column))
+  possibleValues = possibleValues.filter(e => !numsInRow.includes(e))
+  possibleValues = possibleValues.filter(e => !numsInColumn.includes(e))
   possibleValues = possibleValues.filter(e => !numsInSubGrid.includes(e))
 
   return possibleValues;
@@ -997,7 +1044,7 @@ function initPossibleCoordinatesBoard() {
 function isGameBoardGridComplete(subGrid) {
   let countToNine = clone(countToNineArray);
 
-  for (coordinates of subGrid) {
+  for (let coordinates of subGrid) {
     let tile = getGameBoardTile(coordinates);
     let index = countToNine.indexOf(tile);
 
@@ -1012,7 +1059,7 @@ function isGameBoardGridComplete(subGrid) {
 }
 
 function isGameBoardComplete() {
-  for (grid of allGrids) {
+  for (let grid of allGrids) {
     if (!isGameBoardGridComplete(grid.coordinates)) {
       return false;
     }
@@ -1059,38 +1106,257 @@ function formatBoardAsStrings(boardObj) {
 //   // debugger
 // }
 
+// function removeNumFromArray(int, coordinates, possibleCoordinates) {
 function removeNumFromArray(int, coordinates, possibleCoordinates) {
   let row = coordinates[0];
   let column = coordinates[1];
 
-  if (possibleCoordinates[row][column].includes(int)) {
-    possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
+  // if (possibleCoordinates[row][column].includes(int)) {
+  // possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
+  // }
+
+  // try {
+  // possibleCoordinates[row][column] = possibleCoordinates[row][column].filter(e => e !== int)
+  let filteredArray = possibleCoordinates[row][column].filter(e => e !== int)
+  // } catch {
+  //   debugger
+  // }
+
+  // return possibleCoordinates;
+  return filteredArray;
+}
+
+function arraysEqual(a1, a2) {
+  if (a1.length !== a2.length) {
+    return false;
+  };
+
+  a1.sort();
+  a2.sort();
+
+  for (let i = 0; i < a1.length; i++) {
+    let a1Value = a1[i];
+    let a2Value = a2[i];
+    if (a1Value !== a2Value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function removeNumFromPossibleCoordinatesRow(int, row, possibleCoordinates) {
+  let rowCoordinates = getRowGrids(row)
+  for (let coordinates of rowCoordinates) {
+    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+    let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+    setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
   }
 
   return possibleCoordinates;
 }
 
-function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates) {
-  if (row !== null) {
+function removeNumFromPossibleCoordinatesColumn(int, column, possibleCoordinates) {
+  let columnCoordinates = getColumnGrids(column)
+  for (let coordinates of columnCoordinates) {
+    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+    let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+    setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
+  }
+
+  return possibleCoordinates;
+}
+
+function removeNumFromPossibleCoordinatesSubGrid(int, row, column, possibleCoordinates) {
+  let subGrid = getSubGrid([row, column]);
+  for (let coordinates of subGrid) {
+    // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+    let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+    setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates)
+  }
+
+  return possibleCoordinates;
+}
+
+function comparePossibleCoordinatesWithCache(possibleCoordinates) {
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let currentlyPossible = possibleCoordinates[row][column];
+      let pastPossible = window.possibleCoordinates[row][column];
+      if (!arraysEqual(currentlyPossible, pastPossible)) {
+        // debugger
+      }
+    }
+  }
+}
+
+function arePossibleCoordinatesIllegal(possibleCoordinates) {
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let currentlyPossible = possibleCoordinates[row][column];
+      for (let int of currentlyPossible) {
+        if (isMoveIllegal(coordinates, int)) {
+          debugger
+        }
+      }
+    }
+  }
+}
+
+function possibleCoordinatesEmptyIncorrectly(possibleCoordinates) {
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
+      let row = coordinates[0];
+      let column = coordinates[1];
+      let currentlyPossible = possibleCoordinates[row][column];
+      let currentlySet = getGameBoardTile(coordinates);
+      if (currentlyPossible.length === 0 && currentlySet === blankTile) {
+        debugger
+        return true
+      }
+    }
+  }
+  return false
+}
+
+function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates, setup) {
+  console.log("remove: ", int, [row, column]);
+
+  // check if possibleCoordinates is being changed outside this function
+  // debugger
+
+  // if (!(window.possibleCoordinates === undefined)) {
+  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
+  // }
+
+  if (setup === undefined && possibleCoordinatesEmptyIncorrectly(possibleCoordinates)) {
+    debugger
+  }
+
+  let errorReport = {
+    int: int,
+    coordinates: [row, column],
+    row: [],
+    originalRow: [],
+    column: [],
+    originalColumn: [],
+    subGrid: [],
+    originalSubGrid: [],
+    originalPossibleCoordinates: clone(possibleCoordinates)
+  }
+  // if (row !== null) {
+  try {
     let rowCoordinates = getRowGrids(row)
-    for (coordinates of rowCoordinates) {
-      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
-    }
-  }
 
-  if (column !== null) {
+    for (let coordinates of rowCoordinates) {
+      let rowObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.originalRow.push(rowObject);
+    }
+
+    for (let coordinates of rowCoordinates) {
+      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
+      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+      let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+    }
+
+    // window.possibleCoordinates = possibleCoordinates;
+
+    for (let coordinates of rowCoordinates) {
+      let rowObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.row.push(rowObject);
+      if (getPossibleCoordinates(coordinates, possibleCoordinates).includes(int)) {
+        debugger
+      }
+    }
+  } catch {}
+
+  // if (!(window.possibleCoordinates === undefined)) {
+  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
+  // }
+
+
+
+  try {
+    // if (column !== null) {
     let columnCoordinates = getColumnGrids(column)
-    for (coordinates of columnCoordinates) {
-      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
+    // if (row === null) {
+    //   // debugger
+    // }
+    for (let coordinates of columnCoordinates) {
+      let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.originalColumn.push(columnObject);
     }
+    for (let coordinates of columnCoordinates) {
+      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
+      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+      let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+    }
+
+    // window.possibleCoordinates = possibleCoordinates;
+
+    for (let coordinates of columnCoordinates) {
+      let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.column.push(columnObject);
+      if (getPossibleCoordinates(coordinates, possibleCoordinates).includes(int)) {
+        debugger
+      }
+    }
+    // if (row === null) {
+    //   // debugger
+    // }
+  } catch {}
+
+  // if (!(window.possibleCoordinates === undefined)) {
+  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
+  // }
+
+
+
+  // if (row !== null && column !== null) {
+  try {
+    let subGrid = getSubGrid([row, column]);
+
+    for (let coordinates of subGrid) {
+      let subGridObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.originalSubGrid.push(subGridObject);
+    }
+    for (let coordinates of subGrid) {
+      // possibleCoordinates[row][column] = removeNumFromArray(int, coordinates, possibleCoordinates)
+      // possibleCoordinates[coordinates[0]][coordinates[1]] = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int)
+      let updatedValues = possibleCoordinates[coordinates[0]][coordinates[1]].filter(e => e !== int);
+      setPossibleCoordinates(coordinates, updatedValues, possibleCoordinates, setup)
+    }
+    for (let coordinates of subGrid) {
+      let gridObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+      errorReport.subGrid.push(gridObject);
+      if (getPossibleCoordinates(coordinates, possibleCoordinates).includes(int)) {
+        debugger
+      }
+    }
+  } catch {}
+
+  // if (!(window.possibleCoordinates === undefined)) {
+  //   comparePossibleCoordinatesWithCache(possibleCoordinates)
+  // }
+
+  if (arePossibleCoordinatesIllegal(possibleCoordinates)) {
+    debugger
   }
 
-  if (row !== null && column !== null) {
-    let subGrid = getSubGrid([row, column]);
-    for (coordinates of subGrid) {
-      possibleCoordinates = removeNumFromArray(int, coordinates, possibleCoordinates)
-    }
+  console.log("setup: ", setup)
+
+  if (setup === undefined && possibleCoordinatesEmptyIncorrectly(possibleCoordinates)) {
+    debugger
   }
+
+  console.log("possible remove report: ", errorReport)
+  // window.possibleCoordinates = possibleCoordinates;
+
   return possibleCoordinates;
 }
 
@@ -1133,8 +1399,8 @@ function solutionErrorCheck() {
     errorCoordinates: [],
   }
 
-  for (subGrid of allGrids) {
-    for (coordinates of subGrid.coordinates) {
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
       let row = coordinates[0];
       let column = coordinates[1];
       let gameBoardTile = gameBoard[row][column];
@@ -1157,50 +1423,102 @@ function possibleCoordinatesErrorCheck(possibleCoordinates) {
     errorCoordinates: [],
   }
 
-  for (subGrid of allGrids) {
-    for (coordinates of subGrid.coordinates) {
+
+  // let newPossibleCoordinates = initPossibleCoordinatesBoard();
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
       let row = coordinates[0];
       let column = coordinates[1];
-      let possibleCoordinateTile = possibleCoordinates[row][column];
-      let gameBoardTile = gameBoard[row][column];
+      let gameBoardTile = getGameBoardTile([row, column]);
+      let possibleCoordinateValue = getPossibleCoordinates([row, column], possibleCoordinates);
+
       if (gameBoardTile === blankTile) {
-        if (possibleCoordinateTile.length === 0) {
+        let possibleValues = getPossibleValues([row, column]);
+
+        if (possibleCoordinateValue.length === possibleValues.length) {
+          for (let int of possibleValues) {
+            if (!possibleCoordinateValue.includes(int)) {
+              errorReport.errors++;
+              errorReport.errorCoordinates.push([row, column])
+              break
+            }
+          }
+        } else {
           errorReport.errors++;
-          errorReport.errorCoordinates.push(coordinates)
+          errorReport.errorCoordinates.push([row, column])
         }
-      }
-      if (gameBoardTile !== blankTile) {
-        if (possibleCoordinateTile.length > 0) {
+      } else if (gameBoardTile !== blankTile) {
+        if (!possibleCoordinateValue.length === 0) {
           errorReport.errors++;
-          errorReport.errorCoordinates.push(coordinates)
+          errorReport.errorCoordinates.push([row, column])
         }
       }
     }
   }
-  console.log("possibleCoordinatesErrorReport: ", errorReport);
+  console.log("possibleCoordinates error count: ", errorReport.errors);
+  console.log("possibleCoordinates error coordinates: ", errorReport.errorCoordinates);
 }
 
 function boardCompleteCheck() {
-  for (subGrid of allGrids) {
-    for (coordinates of subGrid.coordinates) {
+  let blankTileCount = 0;
+
+  for (let subGrid of allGrids) {
+    for (let coordinates of subGrid.coordinates) {
       let row = coordinates[0];
       let column = coordinates[1];
       let gameBoardTile = gameBoard[row][column];
       if (gameBoardTile === blankTile) {
-        return false;
+        blankTileCount++
       }
     }
   }
-  return true;
+  console.log("blankTileCount: ", blankTileCount);
+
+  return blankTileCount === 0;
+}
+
+function printGameBoard() {
+  console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
+  console.log("solution board: ", formatBoardAsStrings(board))
+}
+
+function removeCoordinatesFromPossByInt(coordinatesToRemove, possibleCoordinateByInt) {
+  let newPossibleCoordinateByInt = {}
+  for (let int in possibleCoordinateByInt) {
+    newPossibleCoordinateByInt[int] = [];
+    // for (let coordinates of possibleCoordinateByInt[int]) {
+    for (let i = 0; i < possibleCoordinateByInt[int].length; i++) {
+      let coordinates = possibleCoordinateByInt[int][i];
+      if (!coordinatesEqual([coordinates[0], coordinates[1]], coordinatesToRemove)) {
+        // indexToRemove = i;
+        // break;
+        newPossibleCoordinateByInt[int].push([coordinates[0], coordinates[1]]);
+      }
+    }
+    // if (indexToRemove !== undefined) {
+    //   possibleCoordinateByInt[int].splice(indexToRemove, 0);
+    // }
+  }
+  for (let int in newPossibleCoordinateByInt) {
+    int = parseInt(int);
+    let coordinatesArray = newPossibleCoordinateByInt[int];
+    for (coordinates of coordinatesArray) {
+      if (isMoveIllegal(coordinates, int)) {
+        debugger
+      }
+    }
+  }
+  return newPossibleCoordinateByInt;
 }
 
 function solvePuzzle() {
+
   // claim all the pre-set numbers on the starting board
   let claimedCoordinates = {
     rows: {},
     columns: {}
   };
-  for (num of countToNineArray) {
+  for (let num of countToNineArray) {
     claimedCoordinates.rows[num] = [];
     claimedCoordinates.columns[num] = [];
   }
@@ -1215,33 +1533,60 @@ function solvePuzzle() {
     }
   }
 
-  for (coordinates of availableGameBoardTiles) {
+  // let possibleCoordinates = initPossibleCoordinatesBoard();
+
+  for (let coordinates of availableGameBoardTiles) {
+    // let row = coordinates[0];
+    // let column = coordinates[1];
+
+    // let possibleValues = getPossibleValues(coordinates, claimedCoordinates);
+    let throwAway = coordinates;
     let row = coordinates[0];
     let column = coordinates[1];
-
-    let possibleValues = getPossibleValues(coordinates, claimedCoordinates);
+    let possibleValues = getPossibleValues([row, column]);
     if (possibleValues.length === 1) {
       let tileValue = possibleValues[0];
-      setGameBoardTile(coordinates, tileValue);
+      setGameBoardTile([row, column], tileValue);
       claimedCoordinates.rows[tileValue].push(row);
       claimedCoordinates.columns[tileValue].push(column);
-      possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
+      possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates, true);
+
+      // possibleCoordinates = removeNumFromPossibleCoordinatesRow(tileValue, row, possibleCoordinates) 
+      // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(tileValue, column, possibleCoordinates)
+      // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(tileValue, row, column, possibleCoordinates) 
+
     } else if (possibleValues.length > 1) {
-      for (num of possibleValues) {
+      for (let num of possibleValues) {
+        if (!coordinatesEqual(coordinates, [row, column])) {
+          debugger
+        }
+        if (!coordinatesEqual(throwAway, [row, column])) {
+          debugger
+        }
         possibleCoordinates[row][column].push(num)
       }
     }
   }
 
+  if (possibleCoordinatesEmptyIncorrectly(possibleCoordinates)) {
+    debugger
+  }
+
   let counter = 0;
   // while (availableGameBoardTiles.length > 0) {
   while (true) {
-    for (subGrid of allGrids) {
-      let locationsArray = {};
-      for (coordinates of subGrid.coordinates) {
-        let row = coordinates[0];
-        let column = coordinates[1];
-        let possibleValues = possibleCoordinates[row][column];
+    // if (!(window.possibleCoordinates === undefined)) {
+    //   // debugger
+    //   // comparePossibleCoordinatesWithCache(possibleCoordinates)
+    // }
+
+    for (let subGrid of allGrids) {
+      let possibleCoordinateByInt = {};
+
+      for (let coordinates of subGrid.coordinates) {
+        var row = coordinates[0];
+        var column = coordinates[1];
+        let possibleValues = getPossibleCoordinates([row, column], possibleCoordinates);
 
         if (possibleValues.length === 0) {
           continue
@@ -1249,39 +1594,67 @@ function solvePuzzle() {
 
         if (possibleValues.length === 1) {
           let tileValue = possibleValues[0];
-          setGameBoardTile(coordinates, tileValue);
-          claimedCoordinates.rows[tileValue].push(row);
-          claimedCoordinates.columns[tileValue].push(column);
+          setGameBoardTile([row, column], tileValue);
+          // claimedCoordinates.rows[tileValue].push(row);
+          // claimedCoordinates.columns[tileValue].push(column);
           possibleCoordinates = removeNumFromPossibleCoordinates(tileValue, row, column, possibleCoordinates);
+          possibleCoordinateByInt[tileValue] = [];
+
+
+
+          // possibleCoordinates = removeNumFromPossibleCoordinatesRow(tileValue, row, possibleCoordinates) 
+          // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(tileValue, column, possibleCoordinates)
+          // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(tileValue, row, column, possibleCoordinates) 
         } else if (possibleValues.length > 1) {
-          for (int of possibleValues) {
-            if (Array.isArray(locationsArray[int])) {
-              locationsArray[int].push([row, column]);
+          for (let int of possibleValues) {
+            if (Array.isArray(possibleCoordinateByInt[int])) {
+              possibleCoordinateByInt[int].push([row, column]);
             } else {
-              locationsArray[int] = [row, column];
+              possibleCoordinateByInt[int] = [
+                [row, column]
+              ];
             }
           }
         }
       }
 
-      for (int in locationsArray) {
+      // continue
+
+      for (int in possibleCoordinateByInt) {
         int = parseInt(int);
-        let locations = locationsArray[int];
+        let locations = possibleCoordinateByInt[int];
+
+        if (locations.length === 0) {
+          continue
+        }
+
         // num might only be possible in one tile, but that tile might have other possible nums
-        if (locations.length === 1 && possibleCoordinates[row][column].includes(tile)) {
-          let row = locations[0][0];
-          let column = locations[0][1];
-          setGameBoardTile(locations[0], int);
+        let firstRow = locations[0][0];
+        let firstColumn = locations[0][1];
+        // if (locations[0].length === 1 && possibleCoordinates[firstRow][firstColumn].includes(int))
+        if (locations.length === 1) {
+          setGameBoardTile([firstRow, firstColumn], int);
           // claimedCoordinates.rows[int].push(row);
           // claimedCoordinates.columns[int].push(column);
-          possibleCoordinates = removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates)
-          possibleCoordinates[row][column] = [];
+          possibleCoordinates = removeNumFromPossibleCoordinates(int, firstRow, firstColumn, possibleCoordinates)
+
+          // debugger
+          possibleCoordinateByInt = removeCoordinatesFromPossByInt([firstRow, firstColumn], possibleCoordinateByInt);
+
+          // possibleCoordinates = removeNumFromPossibleCoordinatesRow(int, firstRow, possibleCoordinates) 
+          // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(int, firstColumn, possibleCoordinates)
+          // possibleCoordinates = removeNumFromPossibleCoordinatesSubGrid(int, firstRow, firstColumn, possibleCoordinates) 
+          possibleCoordinates[firstRow][firstColumn] = [];
           // might be able to claim a row or a column when multiple tiles are possible for a single num
-        } else if (locations[0].length > 1) {
+        } else if (locations.length > 1) {
+
+          // TODO: this calls way too often
+          // should maybe limit to when int is in row or column
+          // outside of current subGrid
           let rows = [];
           let columns = [];
 
-          for (coordinates of locations) {
+          for (let coordinates of locations) {
             rows.push(coordinates[0]);
             columns.push(coordinates[1]);
           }
@@ -1292,36 +1665,41 @@ function solvePuzzle() {
             // console.log("unique row: ", int, uniqueRows[0])
             // claimedCoordinates.rows[int].push(uniqueRows[0]);
             // debugger
-            possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
-            for (column of uniqueColumns) {
-              possibleCoordinates[uniqueRows[0]][column].push(int);
-            }
-          }
-          if (uniqueColumns.length === 1) {
+            // possibleCoordinates = removeNumFromPossibleCoordinatesRow(int, uniqueRows[0], possibleCoordinates) 
+
+            // possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
+            // for (let column of uniqueColumns) {
+            //   possibleCoordinates[uniqueRows[0]][column].push(int);
+            // }
+          } else if (uniqueColumns.length === 1) {
             // console.log("unique column: ", int, uniqueColumns[0])
             // claimedCoordinates.columns[int].push(uniqueColumns[0]);
             // debugger
-            possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
-            for (row of uniqueRows) {
-              possibleCoordinates[row][uniqueColumns[0]].push(int);
-            }
+            // possibleCoordinates = removeNumFromPossibleCoordinatesColumn(int, uniqueColumns[0], possibleCoordinates)
+
+            // possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
+            // for (let row of uniqueRows) {
+            //   possibleCoordinates[row][uniqueColumns[0]].push(int);
+            // }
           }
+
+          // window.possibleCoordinates = possibleCoordinates;
         }
       }
     }
 
 
     counter++;
-    if (counter > 100) {
-      possibleCoordinatesErrorCheck(possibleCoordinates)
+    if (counter > 40) {
       console.log("possibleCoordinates: ", possibleCoordinates);
+      possibleCoordinatesErrorCheck(possibleCoordinates)
       break
-      counter = 0;
-      gameBoard = initBoard();
-      createGameBoard();
-      setupBoard = clone(gameBoard);
-      formatSetupBoard()
-      solvePuzzle();
+      // counter = 0;
+      // gameBoard = initBoard();
+      // createGameBoard();
+      // setupBoard = clone(gameBoard);
+      // formatSetupBoard()
+      // solvePuzzle();
       break
     }
   }
@@ -1335,11 +1713,22 @@ setBoard();
 let gameBoard = initBoard();
 createGameBoard();
 let possibleCoordinates = initPossibleCoordinatesBoard();
-let setupBoard = clone(gameBoard);
-console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
+// let setupBoard = clone(gameBoard);
+// console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
 solvePuzzle();
 console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
 // console.log("availableGameBoardTiles: ", availableGameBoardTiles)
-// console.log("solution board: ", formatBoardAsStrings(board))
 solutionErrorCheck()
 console.log("gameBoard completed: ", boardCompleteCheck());
+
+
+
+// ["7", " ", " ", " ", "3", " ", "9", " ", " "]
+// ["3", " ", "8", " ", "2", " ", " ", "7", " "]
+// ["5", "4", " ", " ", "7", "6", "1", " ", "3"]
+// ["8", " ", " ", "5", "4", "3", "2", "6", " "]
+// ["6", " ", "3", "2", "9", "8", "5", "4", " "]
+// ["4", "2", "5", "1", "6", "7", "8", "3", "9"]
+// ["1", "5", "7", "6", "8", "4", "3", "9", "2"]
+// ["9", "3", " ", "7", "5", "2", " ", "1", "8"]
+// ["2", "8", " ", "3", "1", "9", "2", "5", " "]
