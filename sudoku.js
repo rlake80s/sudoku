@@ -1461,7 +1461,8 @@ function solvePuzzle() {
       // could probably make this better either by 
       // 1) proving the non-material difference
       // 2) do something to make the setup smarter
-      // 3) something else (maybe adding a revealed digit and trying again??)
+      // 3) confirm that every failed board is impossible to solve (if not, make the solve algo smarter)
+      // 4) something else (maybe adding a revealed digit and trying again??)
       if (blankTileCount() > 6) {
         counter = 0;
         availableGameBoardTiles = initAvailableGameBoardTiles()
