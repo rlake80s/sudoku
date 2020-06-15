@@ -1457,6 +1457,11 @@ function solvePuzzle() {
     if (counter > 40) {
       console.log("possibleCoordinates: ", possibleCoordinates);
       possibleCoordinatesErrorCheck(possibleCoordinates)
+      // 6 feels like a decent heuristic for when a board is stuck because a solution is impossible to prove but doesn't make a real difference
+      // could probably make this better either by 
+      // 1) proving the non-material difference
+      // 2) do something to make the setup smarter
+      // 3) something else (maybe adding a revealed digit and trying again??)
       if (blankTileCount() > 6) {
         counter = 0;
         availableGameBoardTiles = initAvailableGameBoardTiles()
@@ -1473,9 +1478,6 @@ function solvePuzzle() {
 
 let board = initBoard();
 setBoard();
-
-// need a separate variable for the starting board with revealed tiles
-// then another for the board that's used to play it to see if it's possible
 let availableGameBoardTiles = initAvailableGameBoardTiles()
 let gameBoard = initBoard();
 createGameBoard();
