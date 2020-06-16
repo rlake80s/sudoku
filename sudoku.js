@@ -1138,7 +1138,7 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates)
     originalPossibleCoordinates: clone(possibleCoordinates)
   }
 
-  if (row !== undefined) {
+  if (row !== null) {
     let rowCoordinates = getRowGrids(row)
 
     for (let coordinates of rowCoordinates) {
@@ -1160,7 +1160,7 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates)
     }
   }
 
-  if (column !== undefined) {
+  if (column !== null) {
     let columnCoordinates = getColumnGrids(column)
     for (let coordinates of columnCoordinates) {
       let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
@@ -1180,7 +1180,7 @@ function removeNumFromPossibleCoordinates(int, row, column, possibleCoordinates)
     }
   }
 
-  if (row !== undefined && column !== undefined) {
+  if (row !== null && column !== null) {
     let subGrid = getSubGrid([row, column]);
 
     for (let coordinates of subGrid) {
@@ -1326,6 +1326,32 @@ function removeCoordinatesFromPossByInt(coordinatesToRemove, possibleCoordinateB
   return newPossibleCoordinateByInt;
 }
 
+function rowContainsInt(int, row, excludeColumns, possibleCoordinates) {
+  let rowCoordinates = getRowGrids(row)
+  rowCoordinates = rowCoordinates.filter(e => !excludeColumns.includes(e[1]));
+
+  for (let coordinates of rowCoordinates) {
+    let rowObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+    if (rowObject.includes(int)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function columnContainsInt(int, column, excludeRows, possibleCoordinates) {
+  let columnCoordinates = getColumnGrids(column);
+  columnCoordinates = columnCoordinates.filter(e => !excludeRows.includes(e[0]));
+
+  for (let coordinates of columnCoordinates) {
+    let columnObject = getPossibleCoordinates(coordinates, possibleCoordinates)
+    if (columnObject.includes(int)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function solvePuzzle() {
 
   // claim all the pre-set numbers on the starting board
@@ -1422,11 +1448,8 @@ function solvePuzzle() {
         } else if (locations.length > 1) {
 
           // Not sure if this adds anything
-          // conceptually it seems it should, but need to look into it more, also:
+          // conceptually it seems it should, but need to look into it more
 
-          // TODO: this calls way too often
-          // should maybe limit to when int is in row or column
-          // outside of current subGrid
           let rows = [];
           let columns = [];
 
@@ -1438,15 +1461,21 @@ function solvePuzzle() {
           let uniqueColumns = [...new Set(columns)]
 
           if (uniqueRows.length === 1) {
-            // possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
-            // for (let column of uniqueColumns) {
-            //   possibleCoordinates[uniqueRows[0]][column].push(int);
-            // }
+            if (rowContainsInt(int, uniqueRows[0], subGrid.columns, possibleCoordinates)) {
+              possibleCoordinates = removeNumFromPossibleCoordinates(int, uniqueRows[0], null, possibleCoordinates)
+              // push the int back into the original subGrid row coordinates
+              for (let column of uniqueColumns) {
+                possibleCoordinates[uniqueRows[0]][column].push(int);
+              }
+            }
           } else if (uniqueColumns.length === 1) {
-            // possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
-            // for (let row of uniqueRows) {
-            //   possibleCoordinates[row][uniqueColumns[0]].push(int);
-            // }
+            if (columnContainsInt(int, uniqueColumns[0], subGrid.rows, possibleCoordinates)) {
+              possibleCoordinates = removeNumFromPossibleCoordinates(int, null, uniqueColumns[0], possibleCoordinates)
+              // push the int back into the original subGrid column coordinates
+              for (let row of uniqueRows) {
+                possibleCoordinates[row][uniqueColumns[0]].push(int);
+              }
+            }
           }
         }
       }
@@ -1484,8 +1513,8 @@ let gameBoard = initBoard();
 createGameBoard();
 let possibleCoordinates = initPossibleCoordinatesBoard();
 let setupBoard = clone(gameBoard);
-console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
 solvePuzzle();
 console.log("gameBoard: ", formatBoardAsStrings(gameBoard));
 solutionErrorCheck()
 console.log("gameBoard completed: ", boardCompleteCheck());
+console.log("setupBoard: ", formatBoardAsStrings(setupBoard));
